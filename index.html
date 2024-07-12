@@ -295,431 +295,432 @@
     </div>
 
     <script>
-      const defaultID = "1175557946474766416";
+const defaultID = "1175557946474766416";
 
-      function getApiUrl() {
-        const path = window.location.pathname;
-        const parts = path.split("/");
-        const id = parts.pop() || defaultID;
-        if (path.includes("/user/")) {
-          return `https://api.communitrics.com/counting/u/${id}/all`;
-        } else {
-          return `https://api.communitrics.com/counting/s/${id}/all`;
-        }
-      }
+function getApiUrl() {
+  const path = window.location.pathname;
+  const parts = path.split("/");
+  const id = parts.pop() || defaultID;
+  console.log("Path:", path);
+  console.log("Extracted ID:", id);
 
-      const apiUrl = getApiUrl();
-      let serverData;
-      let charts = {};
+  return `https://api.communitrics.com/counting/s/${id}/all`;
+}
 
-      async function fetchData() {
-        try {
-          const response = await fetch(apiUrl);
-          return await response.json();
-        } catch (error) {
-          console.error("Error fetching data:", error);
-          return null;
-        }
-      }
+const apiUrl = getApiUrl();
+let serverData;
+let charts = {};
 
-      function getVibrancy(rgb) {
-        const max = Math.max(rgb[0], rgb[1], rgb[2]);
-        const min = Math.min(rgb[0], rgb[1], rgb[2]);
-        const saturation = max - min;
-        const brightness = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
-        return saturation * brightness;
-      }
+async function fetchData() {
+  try {
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    alert("Error fetching data. Please check the console for more details.");
+    return null;
+  }
+}
 
-      function getMostVibrantColor(palette) {
-        return palette.reduce((mostVibrant, color) =>
-          getVibrancy(color) > getVibrancy(mostVibrant) ? color : mostVibrant
-        );
-      }
+function getVibrancy(rgb) {
+  const max = Math.max(rgb[0], rgb[1], rgb[2]);
+  const min = Math.min(rgb[0], rgb[1], rgb[2]);
+  const saturation = max - min;
+  const brightness = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
+  return saturation * brightness;
+}
 
-      function extractColorFromImage(imgSrc, callback) {
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.src = imgSrc;
-        img.onload = () => {
-          const colorThief = new ColorThief();
-          const palette = colorThief.getPalette(img, 8);
-          const mostVibrantColor = getMostVibrantColor(palette);
-          const color = `rgba(${mostVibrantColor.join(",")}, 0.6)`;
-          callback(color);
-        };
-      }
+function getMostVibrantColor(palette) {
+  return palette.reduce((mostVibrant, color) =>
+    getVibrancy(color) > getVibrancy(mostVibrant) ? color : mostVibrant
+  );
+}
 
-      function initializeDashboard() {
-        fetchData().then((data) => {
-          if (data) {
-            serverData = data;
-            updateServerInfo(() => {
-              createServerOverviewChart();
-              createChannelCharts();
-              createUserCharts();
-              createLeaderboard();
-              initializeTabs();
-            });
-          }
-        });
-      }
+function extractColorFromImage(imgSrc, callback) {
+  const img = new Image();
+  img.crossOrigin = "Anonymous";
+  img.src = imgSrc;
+  img.onload = () => {
+    const colorThief = new ColorThief();
+    const palette = colorThief.getPalette(img, 8);
+    const mostVibrantColor = getMostVibrantColor(palette);
+    const color = `rgba(${mostVibrantColor.join(",")}, 0.6)`;
+    callback(color);
+  };
+}
 
-      function updateServerInfo(callback) {
-        const serverIcon = document.getElementById("server-icon");
-        const serverName = document.getElementById("server-name");
-        serverName.textContent = serverData.server_name;
-        serverIcon.src = serverData.server_image;
+function initializeDashboard() {
+  fetchData().then((data) => {
+    if (data) {
+      serverData = data;
+      updateServerInfo(() => {
+        createServerOverviewChart();
+        createChannelCharts();
+        createUserCharts();
+        createLeaderboard();
+        initializeTabs();
+      });
+    }
+  });
+}
 
-        serverIcon.onload = () => {
-          extractColorFromImage(serverData.server_image, (color) => {
-            document.documentElement.style.setProperty("--accent-color", color);
-            callback();
-          });
-        };
-      }
+function updateServerInfo(callback) {
+  const serverIcon = document.getElementById("server-icon");
+  const serverName = document.getElementById("server-name");
+  serverName.textContent = serverData.server_name;
+  serverIcon.src = serverData.server_image;
 
-      function createServerOverviewChart() {
-        const ctx = document
-          .getElementById("server-overview-chart")
-          .getContext("2d");
-        const resetButton = document.createElement("button");
-        resetButton.textContent = "Reset Zoom";
-        resetButton.className = "reset-zoom-btn";
-        const cardHeader = document.querySelector("#overview .card-header");
-        cardHeader.appendChild(resetButton);
+  serverIcon.onload = () => {
+    extractColorFromImage(serverData.server_image, (color) => {
+      document.documentElement.style.setProperty("--accent-color", color);
+      callback();
+    });
+  };
+}
 
-        const accentColor = getComputedStyle(
-          document.documentElement
-        ).getPropertyValue("--accent-color");
+function createServerOverviewChart() {
+  const ctx = document
+    .getElementById("server-overview-chart")
+    .getContext("2d");
+  const resetButton = document.createElement("button");
+  resetButton.textContent = "Reset Zoom";
+  resetButton.className = "reset-zoom-btn";
+  const cardHeader = document.querySelector("#overview .card-header");
+  cardHeader.appendChild(resetButton);
 
-        resetButton.style.backgroundColor = accentColor;
-        resetButton.addEventListener("mouseover", () => {
-          resetButton.style.backgroundColor = "#333333";
-          resetButton.style.color = "white";
-        });
-        resetButton.addEventListener("mouseout", () => {
-          resetButton.style.backgroundColor = accentColor;
-          resetButton.style.color = "white";
-        });
+  const accentColor = getComputedStyle(
+    document.documentElement
+  ).getPropertyValue("--accent-color");
 
-        const allCounts = serverData.channels.flatMap((channel) =>
-          channel.counts.map((count) => ({
-            ...count,
-            channelName: channel.channel_name,
-          }))
-        );
+  resetButton.style.backgroundColor = accentColor;
+  resetButton.addEventListener("mouseover", () => {
+    resetButton.style.backgroundColor = "#333333";
+    resetButton.style.color = "white";
+  });
+  resetButton.addEventListener("mouseout", () => {
+    resetButton.style.backgroundColor = accentColor;
+    resetButton.style.color = "white";
+  });
 
-        allCounts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const allCounts = serverData.channels.flatMap((channel) =>
+    channel.counts.map((count) => ({
+      ...count,
+      channelName: channel.channel_name,
+    }))
+  );
 
-        let cumulativeCount = 0;
-        const cumulativeData = allCounts.map((count) => {
-          cumulativeCount += 1;
-          return {
-            x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
-            y: cumulativeCount,
-            label: count.channelName,
-          };
-        });
+  allCounts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        const minDate = new Date(Math.min(...cumulativeData.map((d) => d.x)));
-        const maxDate = new Date(Math.max(...cumulativeData.map((d) => d.x)));
+  let cumulativeCount = 0;
+  const cumulativeData = allCounts.map((count) => {
+    cumulativeCount += 1;
+    return {
+      x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
+      y: cumulativeCount,
+      label: count.channelName,
+    };
+  });
 
-        charts["server-overview"] = new Chart(ctx, {
-          type: "line",
-          data: {
-            datasets: [
-              {
-                data: cumulativeData,
-                borderColor: accentColor,
-                backgroundColor: accentColor,
-                fill: true,
-                tension: 0.4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            animation: {
-              duration: 1500,
-              easing: "easeInOutQuart",
+  const minDate = new Date(Math.min(...cumulativeData.map((d) => d.x)));
+  const maxDate = new Date(Math.max(...cumulativeData.map((d) => d.x)));
+
+  charts["server-overview"] = new Chart(ctx, {
+    type: "line",
+    data: {
+      datasets: [
+        {
+          data: cumulativeData,
+          borderColor: accentColor,
+          backgroundColor: accentColor,
+          fill: true,
+          tension: 0.4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      animation: {
+        duration: 1500,
+        easing: "easeInOutQuart",
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+        title: {
+          display: false,
+        },
+        tooltip: {
+          mode: "index",
+          intersect: false,
+        },
+        zoom: {
+          zoom: {
+            drag: {
+              enabled: true,
             },
-            plugins: {
-              legend: {
-                display: false,
-              },
-              title: {
-                display: false,
-              },
-              tooltip: {
-                mode: "index",
-                intersect: false,
-              },
-              zoom: {
-                zoom: {
-                  drag: {
-                    enabled: true,
-                  },
-                  mode: "x",
-                  speed: 0.6,
-                  onZoomComplete: function ({ chart }) {
-                    resetButton.style.display = "block";
-                  },
-                  limits: {
-                    x: { min: minDate, max: maxDate },
-                  },
-                },
-                pan: {
-                  enabled: true,
-                  mode: "xy",
-                  modifierKey: "shift",
-                },
-              },
+            mode: "x",
+            speed: 0.6,
+            onZoomComplete: function ({ chart }) {
+              resetButton.style.display = "block";
             },
-            scales: {
-              x: {
-                type: "time",
-                time: {
-                  tooltipFormat: "MMM d, yyyy, hh:mm:ss a",
-                  displayFormats: {
-                    millisecond: "MMM d, yyyy, h:mm:ss.SSS a",
-                    second: "MMM d, yyyy, h:mm:ss a",
-                    minute: "MMM d, yyyy, h:mm a",
-                    hour: "MMM d, yyyy, h:mm a",
-                    day: "MMM d, yyyy",
-                    week: "MMM d, yyyy",
-                    month: "MMM yyyy",
-                    quarter: "QQQ yyyy",
-                    year: "yyyy",
-                  },
-                },
-                ticks: {
-                  callback: function (value, index, values) {
-                    return new Intl.DateTimeFormat(navigator.language, {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    }).format(new Date(value));
-                  },
-                  autoSkip: true,
-                  maxTicksLimit: 10,
-                },
-              },
-              y: {
-                beginAtZero: true,
-                title: {
-                  display: false,
-                },
-              },
+            limits: {
+              x: { min: minDate, max: maxDate },
             },
           },
-        });
+          pan: {
+            enabled: true,
+            mode: "xy",
+            modifierKey: "shift",
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: "time",
+          time: {
+            tooltipFormat: "MMM d, yyyy, hh:mm:ss a",
+            displayFormats: {
+              millisecond: "MMM d, yyyy, h:mm:ss.SSS a",
+              second: "MMM d, yyyy, h:mm:ss a",
+              minute: "MMM d, yyyy, h:mm a",
+              hour: "MMM d, yyyy, h:mm a",
+              day: "MMM d, yyyy",
+              week: "MMM d, yyyy",
+              month: "MMM yyyy",
+              quarter: "QQQ yyyy",
+              year: "yyyy",
+            },
+          },
+          ticks: {
+            callback: function (value, index, values) {
+              return new Intl.DateTimeFormat(navigator.language, {
+                dateStyle: "short",
+                timeStyle: "short",
+              }).format(new Date(value));
+            },
+            autoSkip: true,
+            maxTicksLimit: 10,
+          },
+        },
+        y: {
+          beginAtZero: true,
+          title: {
+            display: false,
+          },
+        },
+      },
+    },
+  });
 
-        resetButton.addEventListener("click", () => {
-          charts["server-overview"].resetZoom();
-          resetButton.style.display = "none";
-        });
-      }
+  resetButton.addEventListener("click", () => {
+    charts["server-overview"].resetZoom();
+    resetButton.style.display = "none";
+  });
+}
 
-      function createChannelCharts() {
-        const channelChartsGrid = document.getElementById(
-          "channel-charts-grid"
-        );
+function createChannelCharts() {
+  const channelChartsGrid = document.getElementById("channel-charts-grid");
 
-        if (serverData.channels.length > 1) {
-          channelChartsGrid.classList.add("grid");
-        } else {
-          channelChartsGrid.classList.remove("grid");
-        }
+  if (serverData.channels.length > 1) {
+    channelChartsGrid.classList.add("grid");
+  } else {
+    channelChartsGrid.classList.remove("grid");
+  }
 
-        serverData.channels.forEach((channel) => {
-          const card = document.createElement("div");
-          card.className = "card";
-          card.innerHTML = `
+  serverData.channels.forEach((channel) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
       <div class="card-header">
         <h2 class="card-title">${channel.channel_name}</h2>
         <button id="resetZoomChannel-${channel.channel_id}" class="reset-zoom-btn">Reset Zoom</button>
       </div>
       <canvas id="channel-${channel.channel_id}-chart" class="chart-container"></canvas>
     `;
-          channelChartsGrid.appendChild(card);
+    channelChartsGrid.appendChild(card);
 
-          const ctx = document
-            .getElementById(`channel-${channel.channel_id}-chart`)
-            .getContext("2d");
-          const resetButton = document.getElementById(
-            `resetZoomChannel-${channel.channel_id}`
-          );
+    const ctx = document
+      .getElementById(`channel-${channel.channel_id}-chart`)
+      .getContext("2d");
+    const resetButton = document.getElementById(
+      `resetZoomChannel-${channel.channel_id}`
+    );
 
-          const accentColor = getComputedStyle(
-            document.documentElement
-          ).getPropertyValue("--accent-color");
+    const accentColor = getComputedStyle(
+      document.documentElement
+    ).getPropertyValue("--accent-color");
 
-          resetButton.style.backgroundColor = accentColor;
-          resetButton.addEventListener("mouseover", () => {
-            resetButton.style.backgroundColor = "#333333";
-            resetButton.style.color = "white";
-          });
-          resetButton.addEventListener("mouseout", () => {
-            resetButton.style.backgroundColor = accentColor;
-            resetButton.style.color = "white";
-          });
+    resetButton.style.backgroundColor = accentColor;
+    resetButton.addEventListener("mouseover", () => {
+      resetButton.style.backgroundColor = "#333333";
+      resetButton.style.color = "white";
+    });
+    resetButton.addEventListener("mouseout", () => {
+      resetButton.style.backgroundColor = accentColor;
+      resetButton.style.color = "white";
+    });
 
-          const allDates = channel.counts.map((count) =>
-            luxon.DateTime.fromISO(count.timestamp).toJSDate()
-          );
-          const minDate = new Date(Math.min(...allDates));
-          const maxDate = new Date(Math.max(...allDates));
+    const allDates = channel.counts.map((count) =>
+      luxon.DateTime.fromISO(count.timestamp).toJSDate()
+    );
+    const minDate = new Date(Math.min(...allDates));
+    const maxDate = new Date(Math.max(...allDates));
 
-          const chart = new Chart(ctx, {
-            type: "line",
-            data: {
-              datasets: [
-                {
-                  data: channel.counts.map((count) => ({
-                    x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
-                    y: count.count_number,
-                  })),
-                  borderColor: accentColor,
-                  backgroundColor: accentColor,
-                  fill: true,
-                  tension: 0.4,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              animation: {
-                duration: 1500,
-                easing: "easeInOutQuart",
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        datasets: [
+          {
+            data: channel.counts.map((count) => ({
+              x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
+              y: count.count_number,
+            })),
+            borderColor: accentColor,
+            backgroundColor: accentColor,
+            fill: true,
+            tension: 0.4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        animation: {
+          duration: 1500,
+          easing: "easeInOutQuart",
+        },
+        plugins: {
+          legend: {
+            display: false,
+          },
+          title: {
+            display: false,
+          },
+          zoom: {
+            zoom: {
+              drag: {
+                enabled: true,
               },
-              plugins: {
-                legend: {
-                  display: false,
-                },
-                title: {
-                  display: false,
-                },
-                zoom: {
-                  zoom: {
-                    drag: {
-                      enabled: true,
-                    },
-                    mode: "x",
-                    speed: 0.6,
-                    onZoomComplete: function ({ chart }) {
-                      resetButton.style.display = "block";
-                    },
-                    limits: {
-                      x: { min: minDate, max: maxDate },
-                    },
-                  },
-                  pan: {
-                    enabled: true,
-                    mode: "xy",
-                    modifierKey: "shift",
-                  },
-                },
+              mode: "x",
+              speed: 0.6,
+              onZoomComplete: function ({ chart }) {
+                resetButton.style.display = "block";
               },
-              scales: {
-                x: {
-                  type: "time",
-                  time: {
-                    tooltipFormat: "MMM d, yyyy, hh:mm:ss a",
-                    displayFormats: {
-                      millisecond: "MMM d, yyyy, h:mm:ss.SSS a",
-                      second: "MMM d, yyyy, h:mm:ss a",
-                      minute: "MMM d, yyyy, h:mm a",
-                      hour: "MMM d, yyyy, h:mm a",
-                      day: "MMM d, yyyy",
-                      week: "MMM d, yyyy",
-                      month: "MMM yyyy",
-                      quarter: "QQQ yyyy",
-                      year: "yyyy",
-                    },
-                  },
-                  ticks: {
-                    callback: function (value, index, values) {
-                      return new Intl.DateTimeFormat(navigator.language, {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      }).format(new Date(value));
-                    },
-                    autoSkip: true,
-                    maxTicksLimit: 10,
-                  },
-                },
-                y: {
-                  beginAtZero: true,
-                  title: {
-                    display: false,
-                  },
-                },
+              limits: {
+                x: { min: minDate, max: maxDate },
               },
             },
-          });
+            pan: {
+              enabled: true,
+              mode: "xy",
+              modifierKey: "shift",
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: "time",
+            time: {
+              tooltipFormat: "MMM d, yyyy, hh:mm:ss a",
+              displayFormats: {
+                millisecond: "MMM d, yyyy, h:mm:ss.SSS a",
+                second: "MMM d, yyyy, h:mm:ss a",
+                minute: "MMM d, yyyy, h:mm a",
+                hour: "MMM d, yyyy, h:mm a",
+                day: "MMM d, yyyy",
+                week: "MMM d, yyyy",
+                month: "MMM yyyy",
+                quarter: "QQQ yyyy",
+                year: "yyyy",
+              },
+            },
+            ticks: {
+              callback: function (value, index, values) {
+                return new Intl.DateTimeFormat(navigator.language, {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                }).format(new Date(value));
+              },
+              autoSkip: true,
+              maxTicksLimit: 10,
+            },
+          },
+          y: {
+            beginAtZero: true,
+            title: {
+              display: false,
+            },
+          },
+        },
+      },
+    });
 
-          charts[`channel-${channel.channel_id}`] = chart;
+    charts[`channel-${channel.channel_id}`] = chart;
 
-          resetButton.addEventListener("click", () => {
-            charts[`channel-${channel.channel_id}`].resetZoom();
-            resetButton.style.display = "none";
-          });
-        });
-      }
+    resetButton.addEventListener("click", () => {
+      charts[`channel-${channel.channel_id}`].resetZoom();
+      resetButton.style.display = "none";
+    });
+  });
+}
 
-      function createUserCharts() {
-        const userChartsGrid = document.getElementById("user-charts-grid");
-        const userCounts = {};
-        const userTotals = {};
+function createUserCharts() {
+  const userChartsGrid = document.getElementById("user-charts-grid");
+  const userCounts = {};
+  const userTotals = {};
 
-        const allCounts = serverData.channels.flatMap((channel) =>
-          channel.counts.map((count) => ({
-            ...count,
-            channelName: channel.channel_name,
-          }))
-        );
+  const allCounts = serverData.channels.flatMap((channel) =>
+    channel.counts.map((count) => ({
+      ...count,
+      channelName: channel.channel_name,
+    }))
+  );
 
-        allCounts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  allCounts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        allCounts.forEach((count) => {
-          if (!userCounts[count.user_id]) {
-            userCounts[count.user_id] = {
-              id: count.user_id,
-              username: count.username,
-              display_name: count.display_name,
-              profile_pic: count.profile_pic,
-              counts: [],
-            };
-          }
-          userCounts[count.user_id].counts.push({
-            x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
-            y: userCounts[count.user_id].counts.length + 1,
-          });
+  allCounts.forEach((count) => {
+    if (!userCounts[count.user_id]) {
+      userCounts[count.user_id] = {
+        id: count.user_id,
+        username: count.username,
+        display_name: count.display_name,
+        profile_pic: count.profile_pic,
+        counts: [],
+      };
+    }
+    userCounts[count.user_id].counts.push({
+      x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
+      y: userCounts[count.user_id].counts.length + 1,
+    });
 
-          if (!userTotals[count.user_id]) {
-            userTotals[count.user_id] = {
-              id: count.user_id,
-              total: 0,
-            };
-          }
-          userTotals[count.user_id].total += 1;
-        });
+    if (!userTotals[count.user_id]) {
+      userTotals[count.user_id] = {
+        id: count.user_id,
+        total: 0,
+      };
+    }
+    userTotals[count.user_id].total += 1;
+  });
 
-        const sortedUsers = Object.values(userTotals).sort(
-          (a, b) => b.total - a.total
-        );
+  const sortedUsers = Object.values(userTotals).sort(
+    (a, b) => b.total - a.total
+  );
 
-        if (Object.keys(userCounts).length > 1) {
-          userChartsGrid.classList.add("grid");
-        } else {
-          userChartsGrid.classList.remove("grid");
-        }
+  if (Object.keys(userCounts).length > 1) {
+    userChartsGrid.classList.add("grid");
+  } else {
+    userChartsGrid.classList.remove("grid");
+  }
 
-        sortedUsers.forEach((userTotal, index) => {
-          const user = userCounts[userTotal.id];
-          const rank = index + 1;
-          const card = document.createElement("div");
-          card.className = "card";
-          card.innerHTML = `
+  sortedUsers.forEach((userTotal, index) => {
+    const user = userCounts[userTotal.id];
+    const rank = index + 1;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
       <div class="card-header">
           <div class="card-title-wrapper">
               <img src="${user.profile_pic}" alt="${user.display_name}'s Profile Picture" style="width: 40px; height: 40px; border-radius: 50%;">
@@ -732,160 +733,158 @@
       </div>
       <canvas id="user-${user.id}-chart" class="chart-container"></canvas>
     `;
-          userChartsGrid.appendChild(card);
+    userChartsGrid.appendChild(card);
 
-          const ctx = document
-            .getElementById(`user-${user.id}-chart`)
-            .getContext("2d");
-          const resetButton = document.getElementById(
-            `resetZoomUser-${user.id}`
-          );
+    const ctx = document
+      .getElementById(`user-${user.id}-chart`)
+      .getContext("2d");
+    const resetButton = document.getElementById(`resetZoomUser-${user.id}`);
 
-          const profilePic = new Image();
-          profilePic.crossOrigin = "Anonymous";
-          profilePic.src = user.profile_pic;
-          profilePic.onload = () => {
-            const colorThief = new ColorThief();
-            const palette = colorThief.getPalette(profilePic, 8);
-            const mostVibrantColor = getMostVibrantColor(palette);
-            const color = `rgba(${mostVibrantColor.join(",")}, 0.6)`;
+    const profilePic = new Image();
+    profilePic.crossOrigin = "Anonymous";
+    profilePic.src = user.profile_pic;
+    profilePic.onload = () => {
+      const colorThief = new ColorThief();
+      const palette = colorThief.getPalette(profilePic, 8);
+      const mostVibrantColor = getMostVibrantColor(palette);
+      const color = `rgba(${mostVibrantColor.join(",")}, 0.6)`;
 
-            resetButton.style.backgroundColor = color;
-            resetButton.addEventListener("mouseover", () => {
-              resetButton.style.backgroundColor = "#333333";
-              resetButton.style.color = "white";
-            });
-            resetButton.addEventListener("mouseout", () => {
-              resetButton.style.backgroundColor = color;
-              resetButton.style.color = "white";
-            });
+      resetButton.style.backgroundColor = color;
+      resetButton.addEventListener("mouseover", () => {
+        resetButton.style.backgroundColor = "#333333";
+        resetButton.style.color = "white";
+      });
+      resetButton.addEventListener("mouseout", () => {
+        resetButton.style.backgroundColor = color;
+        resetButton.style.color = "white";
+      });
 
-            const allDates = user.counts.map((count) => count.x);
-            const minDate = new Date(Math.min(...allDates));
-            const maxDate = new Date(Math.max(...allDates));
+      const allDates = user.counts.map((count) => count.x);
+      const minDate = new Date(Math.min(...allDates));
+      const maxDate = new Date(Math.max(...allDates));
 
-            const chart = new Chart(ctx, {
-              type: "line",
-              data: {
-                datasets: [
-                  {
-                    data: user.counts,
-                    borderColor: color,
-                    backgroundColor: color,
-                    fill: true,
-                    tension: 0.4,
-                  },
-                ],
-              },
-              options: {
-                responsive: true,
-                animation: {
-                  duration: 1500,
-                  easing: "easeInOutQuart",
+      const chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          datasets: [
+            {
+              data: user.counts,
+              borderColor: color,
+              backgroundColor: color,
+              fill: true,
+              tension: 0.4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          animation: {
+            duration: 1500,
+            easing: "easeInOutQuart",
+          },
+          plugins: {
+            legend: {
+              display: false,
+            },
+            title: {
+              display: false,
+            },
+            zoom: {
+              zoom: {
+                drag: {
+                  enabled: true,
                 },
-                plugins: {
-                  legend: {
-                    display: false,
-                  },
-                  title: {
-                    display: false,
-                  },
-                  zoom: {
-                    zoom: {
-                      drag: {
-                        enabled: true,
-                      },
-                      mode: "x",
-                      speed: 0.2,
-                      onZoomComplete: function ({ chart }) {
-                        resetButton.style.display = "block";
-                      },
-                      limits: {
-                        x: { min: minDate, max: maxDate },
-                      },
-                    },
-                    pan: {
-                      enabled: true,
-                      mode: "xy",
-                      modifierKey: "shift",
-                    },
-                  },
+                mode: "x",
+                speed: 0.2,
+                onZoomComplete: function ({ chart }) {
+                  resetButton.style.display = "block";
                 },
-                scales: {
-                  x: {
-                    type: "time",
-                    time: {
-                      tooltipFormat: "MMM d, yyyy, hh:mm:ss a",
-                      displayFormats: {
-                        millisecond: "MMM d, yyyy, h:mm:ss.SSS a",
-                        second: "MMM d, yyyy, h:mm:ss a",
-                        minute: "MMM d, yyyy, h:mm a",
-                        hour: "MMM d, yyyy, h:mm a",
-                        day: "MMM d, yyyy",
-                        week: "MMM d, yyyy",
-                        month: "MMM yyyy",
-                        quarter: "QQQ yyyy",
-                        year: "yyyy",
-                      },
-                    },
-                    ticks: {
-                      callback: function (value, index, values) {
-                        return new Intl.DateTimeFormat(navigator.language, {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        }).format(new Date(value));
-                      },
-                      autoSkip: true,
-                      maxTicksLimit: 10,
-                    },
-                  },
-                  y: {
-                    beginAtZero: true,
-                    title: {
-                      display: false,
-                    },
-                  },
+                limits: {
+                  x: { min: minDate, max: maxDate },
                 },
               },
-            });
+              pan: {
+                enabled: true,
+                mode: "xy",
+                modifierKey: "shift",
+              },
+            },
+          },
+          scales: {
+            x: {
+              type: "time",
+              time: {
+                tooltipFormat: "MMM d, yyyy, hh:mm:ss a",
+                displayFormats: {
+                  millisecond: "MMM d, yyyy, h:mm:ss.SSS a",
+                  second: "MMM d, yyyy, h:mm:ss a",
+                  minute: "MMM d, yyyy, h:mm a",
+                  hour: "MMM d, yyyy, h:mm a",
+                  day: "MMM d, yyyy",
+                  week: "MMM d, yyyy",
+                  month: "MMM yyyy",
+                  quarter: "QQQ yyyy",
+                  year: "yyyy",
+                },
+              },
+              ticks: {
+                callback: function (value, index, values) {
+                  return new Intl.DateTimeFormat(navigator.language, {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  }).format(new Date(value));
+                },
+                autoSkip: true,
+                maxTicksLimit: 10,
+              },
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: false,
+              },
+            },
+          },
+        },
+      });
 
-            charts[`user-${user.id}`] = chart;
+      charts[`user-${user.id}`] = chart;
 
-            resetButton.addEventListener("click", () => {
-              charts[`user-${user.id}`].resetZoom();
-              resetButton.style.display = "none";
-            });
-          };
-        });
+      resetButton.addEventListener("click", () => {
+        charts[`user-${user.id}`].resetZoom();
+        resetButton.style.display = "none";
+      });
+    };
+  });
+}
+
+function createLeaderboard() {
+  const leaderboard = document.getElementById("leaderboard-list");
+  const userTotals = {};
+
+  serverData.channels.forEach((channel) => {
+    channel.counts.forEach((count) => {
+      if (!userTotals[count.user_id]) {
+        userTotals[count.user_id] = {
+          id: count.user_id,
+          username: count.username,
+          display_name: count.display_name,
+          profile_pic: count.profile_pic,
+          total: 0,
+        };
       }
+      userTotals[count.user_id].total += 1;
+    });
+  });
 
-      function createLeaderboard() {
-        const leaderboard = document.getElementById("leaderboard-list");
-        const userTotals = {};
+  const sortedUsers = Object.values(userTotals).sort(
+    (a, b) => b.total - a.total
+  );
 
-        serverData.channels.forEach((channel) => {
-          channel.counts.forEach((count) => {
-            if (!userTotals[count.user_id]) {
-              userTotals[count.user_id] = {
-                id: count.user_id,
-                username: count.username,
-                display_name: count.display_name,
-                profile_pic: count.profile_pic,
-                total: 0,
-              };
-            }
-            userTotals[count.user_id].total += 1;
-          });
-        });
-
-        const sortedUsers = Object.values(userTotals).sort(
-          (a, b) => b.total - a.total
-        );
-
-        sortedUsers.forEach((user, index) => {
-          const li = document.createElement("li");
-          li.className = "leaderboard-item";
-          li.innerHTML = `
+  sortedUsers.forEach((user, index) => {
+    const li = document.createElement("li");
+    li.className = "leaderboard-item";
+    li.innerHTML = `
           <span class="leaderboard-rank">#${index + 1}</span>
           <img class="leaderboard-avatar" src="${user.profile_pic}" alt="${
             user.display_name
@@ -896,31 +895,28 @@
           </div>
           <span class="leaderboard-score">${user.total}</span>
         `;
-          leaderboard.appendChild(li);
-        });
-      }
+    leaderboard.appendChild(li);
+  });
+}
 
-      function initializeTabs() {
-        const tabs = document.querySelectorAll(".tab");
-        const tabContents = document.querySelectorAll(".tab-content");
+function initializeTabs() {
+  const tabs = document.querySelectorAll(".tab");
+  const tabContents = document.querySelectorAll(".tab-content");
 
-        tabs.forEach((tab) => {
-          tab.addEventListener("click", () => {
-            const tabId = tab.getAttribute("data-tab");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const tabId = tab.getAttribute("data-tab");
 
-            tabs.forEach((t) => t.classList.remove("active"));
-            tabContents.forEach((content) =>
-              content.classList.remove("active")
-            );
+      tabs.forEach((t) => t.classList.remove("active"));
+      tabContents.forEach((content) => content.classList.remove("active"));
 
-            tab.classList.add("active");
-            document.getElementById(tabId).classList.add("active");
-          });
-        });
-      }
+      tab.classList.add("active");
+      document.getElementById(tabId).classList.add("active");
+    });
+  });
+}
 
-      document.addEventListener("DOMContentLoaded", 
-      initializeDashboard);
+document.addEventListener("DOMContentLoaded", initializeDashboard);
     </script>
   </body>
 </html>
