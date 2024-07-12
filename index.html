@@ -185,13 +185,13 @@
       }
 
       .tab:first-child {
-        border-top-left-radius: 5px;
-        border-bottom-left-radius: 5px;
+        border-top-left-radius: 15px;
+        border-bottom-left-radius: 15px;
       }
 
       .tab:last-child {
-        border-top-right-radius: 5px;
-        border-bottom-right-radius: 5px;
+        border-top-right-radius: 15px;
+        border-bottom-right-radius: 15px;
       }
 
       .tab.active {
@@ -239,12 +239,19 @@
           padding: 10px;
         }
 
+        .grid {
+          display: grid;
+          gap: 20px;
+          grid-template-columns: repeat(1, 1fr);
+        }
+
         .tabs {
           flex-direction: column;
         }
 
         .tab {
           width: 100%;
+          border-radius: 15px;
           text-align: center;
         }
       }
@@ -295,24 +302,8 @@
     </div>
 
     <script>
-      const defaultID = "1175557946474766416";
-
-      function getApiUrl() {
-        const path = window.location.pathname;
-        const parts = path.split("/");
-
-        const filteredParts = parts.filter((part) => part);
-
-        const id = filteredParts.length > 0 ? filteredParts.pop() : defaultID;
-
-        if (path.includes("/user/")) {
-          return `https://api.communitrics.com/counting/u/${id}/all`;
-        } else {
-          return `https://api.communitrics.com/counting/s/${id}/all`;
-        }
-      }
-
-      const apiUrl = getApiUrl();
+      const apiUrl =
+        "https://api.communitrics.com/counting/s/1175557946474766416/all";
       let serverData;
       let charts = {};
 
@@ -569,21 +560,36 @@
             resetButton.style.color = "white";
           });
 
-          const allDates = channel.counts.map((count) =>
-            luxon.DateTime.fromISO(count.timestamp).toJSDate()
+          const allCounts = serverData.channels.flatMap((channel) =>
+            channel.counts.map((count) => ({
+              ...count,
+              channelName: channel.channel_name,
+            }))
           );
-          const minDate = new Date(Math.min(...allDates));
-          const maxDate = new Date(Math.max(...allDates));
+
+          allCounts.sort(
+            (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+          );
+
+          let cumulativeCount = 0;
+          const cumulativeData = allCounts.map((count) => {
+            cumulativeCount += 1;
+            return {
+              x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
+              y: cumulativeCount,
+              label: count.channelName,
+            };
+          });
+
+          const minDate = new Date(Math.min(...cumulativeData.map((d) => d.x)));
+          const maxDate = new Date(Math.max(...cumulativeData.map((d) => d.x)));
 
           const chart = new Chart(ctx, {
             type: "line",
             data: {
               datasets: [
                 {
-                  data: channel.counts.map((count) => ({
-                    x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
-                    y: count.count_number,
-                  })),
+                  data: cumulativeData,
                   borderColor: accentColor,
                   backgroundColor: accentColor,
                   fill: true,
