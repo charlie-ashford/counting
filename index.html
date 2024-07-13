@@ -584,6 +584,7 @@
 
           const minDate = new Date(Math.min(...channelCounts.map((d) => d.x)));
           const maxDate = new Date(Math.max(...channelCounts.map((d) => d.x)));
+          const minYValue = Math.min(...channelCounts.map((d) => d.y));
 
           const chart = new Chart(ctx, {
             type: "line",
