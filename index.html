@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Communitrics Counting</title>
+    <title>Discord Counting</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
       rel="stylesheet"
@@ -310,8 +310,11 @@
       function getApiUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         const serverId = urlParams.get("server");
+        const userId = urlParams.get("user");
 
-        if (serverId) {
+        if (userId) {
+          return `https://api.communitrics.com/counting/u/${userId}/all`;
+        } else if (serverId) {
           return `https://api.communitrics.com/counting/s/${serverId}/all`;
         } else {
           return "https://api.communitrics.com/counting/s/1175557946474766416/all";
@@ -446,7 +449,7 @@
                 data: cumulativeData,
                 borderColor: accentColor,
                 backgroundColor: accentColor,
-                fill: true,
+                fill: false,
                 tension: 0.4,
               },
             ],
@@ -593,7 +596,7 @@
                   data: channelCounts,
                   borderColor: accentColor,
                   backgroundColor: accentColor,
-                  fill: true,
+                  fill: false,
                   tension: 0.4,
                 },
               ],
@@ -658,7 +661,8 @@
                   },
                 },
                 y: {
-                  beginAtZero: true,
+                  beginAtZero: false,
+                  suggestedMin: minValue,
                   title: {
                     display: false,
                   },
@@ -784,7 +788,7 @@
                     data: user.counts,
                     borderColor: color,
                     backgroundColor: color,
-                    fill: true,
+                    fill: false,
                     tension: 0.4,
                   },
                 ],
