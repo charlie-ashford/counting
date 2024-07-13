@@ -307,8 +307,21 @@
     </div>
 
     <script>
-      const apiUrl =
-        "https://api.communitrics.com/counting/s/1175557946474766416/all";
+      function getApiUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const serverId = urlParams.get('server');
+        const userId = urlParams.get('user');
+
+        if (userId) {
+          return `https://api.communitrics.com/counting/u/${userId}/all`;
+        } else if (serverId) {
+          return `https://api.communitrics.com/counting/s/${serverId}/all`;
+        } else {
+          return 'https://api.communitrics.com/counting/s/1175557946474766416/all';
+        }
+      }
+
+      const apiUrl = getApiUrl();
       let serverData;
       let charts = {};
 
