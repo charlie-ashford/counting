@@ -476,9 +476,9 @@
                   },
                   mode: "x",
                   speed: 0.6,
-                  onZoomComplete: function ({ chart }) {
+                  onZoomComplete: debounce(function ({ chart }) {
                     resetButton.style.display = "block";
-                  },
+                  }, 200),
                   limits: {
                     x: { min: minDate, max: maxDate },
                   },
@@ -615,9 +615,9 @@
                     },
                     mode: "x",
                     speed: 0.6,
-                    onZoomComplete: function ({ chart }) {
+                    onZoomComplete: debounce(function ({ chart }) {
                       resetButton.style.display = "block";
-                    },
+                    }, 200),
                     limits: {
                       x: { min: minDate, max: maxDate },
                     },
@@ -802,9 +802,9 @@
                       },
                       mode: "x",
                       speed: 0.2,
-                      onZoomComplete: function ({ chart }) {
+                      onZoomComplete: debounce(function ({ chart }) {
                         resetButton.style.display = "block";
-                      },
+                      }, 200),
                       limits: {
                         x: { min: minDate, max: maxDate },
                       },
@@ -898,6 +898,18 @@
         `;
           leaderboard.appendChild(li);
         });
+      }
+
+      function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
       }
 
       function initializeTabs() {
