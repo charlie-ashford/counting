@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Discord Counting</title>
+    <title>Communitrics Counting</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
       rel="stylesheet"
@@ -430,7 +430,9 @@
         const cumulativeData = allCounts.map((count) => {
           cumulativeCount += 1;
           return {
-            x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
+            x: luxon.DateTime.fromISO(count.timestamp, {
+              zone: "local",
+            }).toJSDate(),
             y: cumulativeCount,
             label: count.channelName,
           };
@@ -507,6 +509,8 @@
                     return new Intl.DateTimeFormat(navigator.language, {
                       dateStyle: "short",
                       timeStyle: "short",
+                      timeZone:
+                        Intl.DateTimeFormat().resolvedOptions().timeZone,
                     }).format(new Date(value));
                   },
                   autoSkip: true,
@@ -574,7 +578,9 @@
           });
 
           const channelCounts = channel.counts.map((count) => ({
-            x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
+            x: luxon.DateTime.fromISO(count.timestamp, {
+              zone: "local",
+            }).toJSDate(),
             y: count.count_number,
             label: channel.channel_name,
           }));
@@ -646,6 +652,8 @@
                       return new Intl.DateTimeFormat(navigator.language, {
                         dateStyle: "short",
                         timeStyle: "short",
+                        timeZone:
+                          Intl.DateTimeFormat().resolvedOptions().timeZone,
                       }).format(new Date(value));
                     },
                     autoSkip: true,
@@ -696,7 +704,9 @@
             };
           }
           userCounts[count.user_id].counts.push({
-            x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
+            x: luxon.DateTime.fromISO(count.timestamp, {
+              zone: "local",
+            }).toJSDate(),
             y: userCounts[count.user_id].counts.length + 1,
           });
 
@@ -833,6 +843,8 @@
                         return new Intl.DateTimeFormat(navigator.language, {
                           dateStyle: "short",
                           timeStyle: "short",
+                          timeZone:
+                            Intl.DateTimeFormat().resolvedOptions().timeZone,
                         }).format(new Date(value));
                       },
                       autoSkip: true,
