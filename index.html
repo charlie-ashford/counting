@@ -8,7 +8,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="./image.png" type="image/png">
+    <link rel="icon" href="./image.png" type="image/png" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@2.0.2/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
@@ -309,15 +309,15 @@
     <script>
       function getApiUrl() {
         const urlParams = new URLSearchParams(window.location.search);
-        const serverId = urlParams.get('server');
-        const userId = urlParams.get('user');
+        const serverId = urlParams.get("server");
+        const userId = urlParams.get("user");
 
         if (userId) {
           return `https://api.communitrics.com/counting/u/${userId}/all`;
         } else if (serverId) {
           return `https://api.communitrics.com/counting/s/${serverId}/all`;
         } else {
-          return 'https://api.communitrics.com/counting/s/1175557946474766416/all';
+          return "https://api.communitrics.com/counting/s/1175557946474766416/all";
         }
       }
 
@@ -578,36 +578,21 @@
             resetButton.style.color = "white";
           });
 
-          const allCounts = serverData.channels.flatMap((channel) =>
-            channel.counts.map((count) => ({
-              ...count,
-              channelName: channel.channel_name,
-            }))
-          );
+          const channelCounts = channel.counts.map((count) => ({
+            x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
+            y: count.count_number,
+            label: channel.channel_name,
+          }));
 
-          allCounts.sort(
-            (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-          );
-
-          let cumulativeCount = 0;
-          const cumulativeData = allCounts.map((count) => {
-            cumulativeCount += 1;
-            return {
-              x: luxon.DateTime.fromISO(count.timestamp).toJSDate(),
-              y: cumulativeCount,
-              label: count.channelName,
-            };
-          });
-
-          const minDate = new Date(Math.min(...cumulativeData.map((d) => d.x)));
-          const maxDate = new Date(Math.max(...cumulativeData.map((d) => d.x)));
+          const minDate = new Date(Math.min(...channelCounts.map((d) => d.x)));
+          const maxDate = new Date(Math.max(...channelCounts.map((d) => d.x)));
 
           const chart = new Chart(ctx, {
             type: "line",
             data: {
               datasets: [
                 {
-                  data: cumulativeData,
+                  data: channelCounts,
                   borderColor: accentColor,
                   backgroundColor: accentColor,
                   fill: true,
