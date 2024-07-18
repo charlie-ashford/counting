@@ -16,6 +16,8 @@
     <script src="https://code.highcharts.com/modules/xrange.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
       :root {
         --bg-color: #f0f2f5;
@@ -204,6 +206,31 @@
         color: var(--card-bg);
       }
 
+      .export-csv-btn {
+        background-color: var(--accent-color);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 600;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .export-csv-btn:hover {
+        color: var(--accent-color);
+        background-color: #1e1e1e;
+        border: var(--accent-color) solid 2px;
+        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .export-csv-btn:active {
+        background-color: #1e1e1e;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
       .tab-content {
         display: none;
       }
@@ -288,6 +315,7 @@
       }
     </style>
   </head>
+
   <body>
     <div class="container">
       <header>
@@ -295,6 +323,7 @@
           <img id="server-icon" class="server-icon" src="" alt="Server Icon" />
           <h1 id="server-name">Loading...</h1>
         </div>
+        <button id="exportCsvBtn" class="export-csv-btn">Export to CSV</button>
       </header>
 
       <div class="tabs">
@@ -1096,6 +1125,136 @@
       }
 
       document.addEventListener("DOMContentLoaded", initializeDashboard);
+
+      document
+        .getElementById("exportCsvBtn")
+        .addEventListener("click", async () => {
+          const zip = new JSZip();
+
+          // Fetch data if not already loaded
+          if (!serverData) {
+            serverData = await fetchData();
+          }
+
+          // Folder for main data
+          const mainDataFolder = zip.folder("main_data");
+          const serverDataCsv = generateServerDataCsv(serverData);
+          mainDataFolder.file("server_data.csv", serverDataCsv);
+
+          serverData.channels.forEach((channel) => {
+            const channelCsv = generateChannelDataCsv(channel);
+            mainDataFolder.file(
+              `channel_${channel.channel_name}.csv`,
+              channelCsv
+            );
+          });
+
+          const leaderboardCsv = generateLeaderboardCsv(serverData);
+          mainDataFolder.file("leaderboard.csv", leaderboardCsv);
+
+          // Folder for user data
+          const userDataFolder = zip.folder("user_data");
+          const userCounts = aggregateUserCounts(serverData);
+          userCounts.forEach((user) => {
+            const userCsv = generateUserDataCsv(user);
+            userDataFolder.file(`${user.username}.csv`, userCsv);
+          });
+
+          // Generate and download the zip file
+          zip.generateAsync({ type: "blob" }).then((content) => {
+            saveAs(content, "data_export.zip");
+          });
+        });
+
+      function generateServerDataCsv(data) {
+        const allCounts = data.channels.flatMap((channel) =>
+          channel.counts.map((count) => ({
+            timestamp: count.timestamp,
+            channelName: channel.channel_name,
+          }))
+        );
+
+        allCounts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        let cumulativeCount = 0;
+        const cumulativeData = allCounts.map((count) => {
+          cumulativeCount += 1;
+          return [count.timestamp, cumulativeCount];
+        });
+
+        const csvRows = [["Timestamp", "Total Count"], ...cumulativeData];
+
+        return csvRows.map((row) => row.join(",")).join("\n");
+      }
+
+      function generateChannelDataCsv(channel) {
+        const csvRows = [
+          ["Timestamp", "Count"],
+          ...channel.counts.map((count) => [
+            count.timestamp,
+            count.count_number,
+          ]),
+        ];
+        return csvRows.map((row) => row.join(",")).join("\n");
+      }
+
+      function aggregateUserCounts(data) {
+        const userCounts = {};
+        data.channels.forEach((channel) => {
+          channel.counts.forEach((count) => {
+            if (!userCounts[count.user_id]) {
+              userCounts[count.user_id] = {
+                username: count.username,
+                counts: [],
+              };
+            }
+            userCounts[count.user_id].counts.push(count);
+          });
+        });
+        return Object.values(userCounts);
+      }
+
+      function generateUserDataCsv(user) {
+        const csvRows = [
+          ["Timestamp", "Count"],
+          ...user.counts.map((count) => [count.timestamp, count.count_number]),
+        ];
+        return csvRows.map((row) => row.join(",")).join("\n");
+      }
+
+      function generateLeaderboardCsv(data) {
+        const userTotals = {};
+
+        data.channels.forEach((channel) => {
+          channel.counts.forEach((count) => {
+            if (!userTotals[count.user_id]) {
+              userTotals[count.user_id] = {
+                username: count.username,
+                display_name: count.display_name,
+                profile_pic: count.profile_pic,
+                total: 0,
+              };
+            }
+            userTotals[count.user_id].total += 1;
+          });
+        });
+
+        const sortedUsers = Object.values(userTotals).sort(
+          (a, b) => b.total - a.total
+        );
+
+        const csvRows = [
+          ["Rank", "Username", "Display Name", "Total Counts"],
+          ...sortedUsers.map((user, index) => [
+            index + 1,
+            user.username,
+            user.display_name,
+            user.total,
+          ]),
+        ];
+
+        return csvRows.map((row) => row.join(",")).join("\n");
+      }
     </script>
   </body>
 </html>
