@@ -1131,12 +1131,10 @@
         .addEventListener("click", async () => {
           const zip = new JSZip();
 
-          // Fetch data if not already loaded
           if (!serverData) {
             serverData = await fetchData();
           }
 
-          // Folder for main data
           const mainDataFolder = zip.folder("main_data");
           const serverDataCsv = generateServerDataCsv(serverData);
           mainDataFolder.file("server_data.csv", serverDataCsv);
@@ -1152,7 +1150,6 @@
           const leaderboardCsv = generateLeaderboardCsv(serverData);
           mainDataFolder.file("leaderboard.csv", leaderboardCsv);
 
-          // Folder for user data
           const userDataFolder = zip.folder("user_data");
           const userCounts = aggregateUserCounts(serverData);
           userCounts.forEach((user) => {
@@ -1160,7 +1157,6 @@
             userDataFolder.file(`${user.username}.csv`, userCsv);
           });
 
-          // Generate and download the zip file
           zip.generateAsync({ type: "blob" }).then((content) => {
             saveAs(content, "data_export.zip");
           });
