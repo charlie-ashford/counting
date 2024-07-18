@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Communitrics Counting</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
       rel="stylesheet"
     />
     <link rel="icon" href="./image.png" type="image/png" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/luxon@2.0.2/build/global/luxon.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.0.0"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <script src="https://code.highcharts.com/modules/xrange.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
     <style>
       :root {
@@ -42,30 +43,10 @@
       }
 
       body {
-        font-family: "Poppins", sans-serif;
+        font-family: "Inter", sans-serif;
         background-color: var(--bg-color);
         color: var(--text-color);
         line-height: 1.6;
-      }
-
-      .card-header {
-        display: flex;
-        align-items: center;
-      }
-
-      .card-title-wrapper {
-        display: flex;
-        align-items: center;
-      }
-
-      .card-title {
-        margin-left: 10px;
-      }
-
-      .card-rank {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        margin-left: 10px;
       }
 
       .container {
@@ -262,7 +243,6 @@
       }
     </style>
   </head>
-
   <body>
     <div class="container">
       <header>
@@ -284,7 +264,7 @@
           <div class="card-header">
             <h2 class="card-title">Server Overview</h2>
           </div>
-          <canvas id="server-overview-chart" class="chart-container"></canvas>
+          <div id="server-overview-chart" class="chart-container"></div>
         </div>
       </div>
 
@@ -391,9 +371,7 @@
       }
 
       function createServerOverviewChart() {
-        const ctx = document
-          .getElementById("server-overview-chart")
-          .getContext("2d");
+        const container = document.getElementById("server-overview-chart");
         const resetButton = document.createElement("button");
         resetButton.textContent = "Reset Zoom";
         resetButton.className = "reset-zoom-btn";
@@ -426,107 +404,117 @@
         let cumulativeCount = 0;
         const cumulativeData = allCounts.map((count) => {
           cumulativeCount += 1;
-          return {
-            x: luxon.DateTime.fromISO(count.timestamp, {
-              zone: "local",
-            }).toJSDate(),
-            y: cumulativeCount,
-            label: count.channelName,
-          };
+          return [
+            new Date(count.timestamp).getTime(),
+            cumulativeCount,
+            count.channelName,
+          ];
         });
 
-        const minDate = new Date(Math.min(...cumulativeData.map((d) => d.x)));
-        const maxDate = new Date(Math.max(...cumulativeData.map((d) => d.x)));
-
-        charts["server-overview"] = new Chart(ctx, {
-          type: "line",
-          data: {
-            datasets: [
-              {
-                data: cumulativeData,
-                borderColor: accentColor,
-                backgroundColor: accentColor,
-                fill: true,
-                tension: 0.4,
-              },
-            ],
+        charts["server-overview"] = Highcharts.chart(container, {
+          chart: {
+            type: "area",
+            zoomType: "x",
+            backgroundColor: "transparent",
+            animation: true,
+            resetZoomButton: false,
           },
-          options: {
-            responsive: true,
-            animation: {
-              duration: 1500,
-              easing: "easeInOutQuart",
-            },
-            plugins: {
-              legend: {
-                display: false,
+          title: {
+            text: null,
+          },
+          xAxis: {
+            type: "datetime",
+            tickAmount: 6,
+            labels: {
+              style: {
+                color: getComputedStyle(
+                  document.documentElement
+                ).getPropertyValue("--text-color"),
               },
-              title: {
-                display: false,
-              },
-              tooltip: {
-                mode: "index",
-                intersect: false,
-              },
-              zoom: {
-                zoom: {
-                  drag: {
-                    enabled: true,
-                  },
-                  mode: "x",
-                  speed: 0.6,
-                  onZoomComplete: debounce(function ({ chart }) {
-                    resetButton.style.display = "block";
-                  }, 200),
-                  limits: {
-                    x: { min: minDate, max: maxDate },
-                  },
-                },
+              formatter: function () {
+                const date = Highcharts.dateFormat("%b %d, %Y", this.value);
+                const time = Highcharts.dateFormat("%H:%M:%S", this.value);
+                return `${date}<br>${time}`;
               },
             },
-            scales: {
-              x: {
-                type: "time",
-                time: {
-                  tooltipFormat: "MMM d, yyyy, hh:mm:ss a",
-                  displayFormats: {
-                    millisecond: "MMM d, yyyy, h:mm:ss.SSS a",
-                    second: "MMM d, yyyy, h:mm:ss a",
-                    minute: "MMM d, yyyy, h:mm a",
-                    hour: "MMM d, yyyy, h:mm a",
-                    day: "MMM d, yyyy",
-                    week: "MMM d, yyyy",
-                    month: "MMM yyyy",
-                    quarter: "QQQ yyyy",
-                    year: "yyyy",
-                  },
-                },
-                ticks: {
-                  callback: function (value, index, values) {
-                    return new Intl.DateTimeFormat(navigator.language, {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                      timeZone:
-                        Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    }).format(new Date(value));
-                  },
-                  autoSkip: true,
-                  maxTicksLimit: 10,
-                },
-              },
-              y: {
-                beginAtZero: true,
-                title: {
-                  display: false,
-                },
+            lineColor: getComputedStyle(
+              document.documentElement
+            ).getPropertyValue("--border-color"),
+            tickColor: getComputedStyle(
+              document.documentElement
+            ).getPropertyValue("--border-color"),
+          },
+          yAxis: {
+            title: {
+              text: null,
+            },
+            labels: {
+              style: {
+                color: getComputedStyle(
+                  document.documentElement
+                ).getPropertyValue("--text-color"),
               },
             },
+            gridLineColor: getComputedStyle(
+              document.documentElement
+            ).getPropertyValue("--border-color"),
+          },
+          tooltip: {
+            formatter: function () {
+              return (
+                Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
+                "<br/>" +
+                "Total counts: " +
+                this.y +
+                "<br/>"
+              );
+            },
+          },
+          series: [
+            {
+              name: "Total Counts",
+              data: cumulativeData.map((d) => ({
+                x: d[0],
+                y: d[1],
+                channel: d[2],
+              })),
+              color: accentColor,
+              fillColor: accentColor,
+            },
+          ],
+          plotOptions: {
+            area: {
+              marker: {
+                enabled: false,
+              },
+            },
+          },
+          credits: {
+            enabled: false,
+          },
+          exporting: {
+            enabled: false,
+          },
+          legend: {
+            enabled: false,
           },
         });
 
         resetButton.addEventListener("click", () => {
-          charts["server-overview"].resetZoom();
+          charts["server-overview"].zoomOut();
           resetButton.style.display = "none";
+        });
+
+        charts["server-overview"].update({
+          chart: {
+            events: {
+              selection: function (event) {
+                if (event.xAxis) {
+                  resetButton.style.display = "block";
+                }
+              },
+            },
+          },
         });
       }
 
@@ -545,17 +533,17 @@
           const card = document.createElement("div");
           card.className = "card";
           card.innerHTML = `
-      <div class="card-header">
-        <h2 class="card-title">${channel.channel_name}</h2>
-        <button id="resetZoomChannel-${channel.channel_id}" class="reset-zoom-btn">Reset Zoom</button>
-      </div>
-      <canvas id="channel-${channel.channel_id}-chart" class="chart-container"></canvas>
-    `;
+            <div class="card-header">
+                <h2 class="card-title">${channel.channel_name}</h2>
+                <button id="resetZoomChannel-${channel.channel_id}" class="reset-zoom-btn">Reset Zoom</button>
+            </div>
+            <div id="channel-${channel.channel_id}-chart" class="chart-container"></div>
+        `;
           channelChartsGrid.appendChild(card);
 
-          const ctx = document
-            .getElementById(`channel-${channel.channel_id}-chart`)
-            .getContext("2d");
+          const container = document.getElementById(
+            `channel-${channel.channel_id}-chart`
+          );
           const resetButton = document.getElementById(
             `resetZoomChannel-${channel.channel_id}`
           );
@@ -574,106 +562,114 @@
             resetButton.style.color = "white";
           });
 
-          const channelCounts = channel.counts.map((count) => ({
-            x: luxon.DateTime.fromISO(count.timestamp, {
-              zone: "local",
-            }).toJSDate(),
-            y: count.count_number,
-            label: channel.channel_name,
-          }));
+          const channelCounts = channel.counts.map((count) => [
+            new Date(count.timestamp).getTime(),
+            count.count_number,
+          ]);
 
-          const minDate = new Date(Math.min(...channelCounts.map((d) => d.x)));
-          const maxDate = new Date(Math.max(...channelCounts.map((d) => d.x)));
-          const minYValue = Math.min(...channelCounts.map((d) => d.y));
-
-          const chart = new Chart(ctx, {
-            type: "line",
-            data: {
-              datasets: [
+          charts[`channel-${channel.channel_id}`] = Highcharts.chart(
+            container,
+            {
+              chart: {
+                type: "area",
+                zoomType: "x",
+                backgroundColor: "transparent",
+                animation: true,
+                resetZoomButton: false,
+              },
+              title: {
+                text: null,
+              },
+              xAxis: {
+                type: "datetime",
+                tickAmount: 6,
+                labels: {
+                  style: {
+                    color: getComputedStyle(
+                      document.documentElement
+                    ).getPropertyValue("--text-color"),
+                  },
+                  formatter: function () {
+                    const date = Highcharts.dateFormat("%b %d, %Y", this.value);
+                    const time = Highcharts.dateFormat("%H:%M:%S", this.value);
+                    return `${date}<br>${time}`;
+                  },
+                },
+                lineColor: getComputedStyle(
+                  document.documentElement
+                ).getPropertyValue("--border-color"),
+                tickColor: getComputedStyle(
+                  document.documentElement
+                ).getPropertyValue("--border-color"),
+              },
+              yAxis: {
+                title: {
+                  text: null,
+                },
+                labels: {
+                  style: {
+                    color: getComputedStyle(
+                      document.documentElement
+                    ).getPropertyValue("--text-color"),
+                  },
+                },
+                gridLineColor: getComputedStyle(
+                  document.documentElement
+                ).getPropertyValue("--border-color"),
+                min: Math.min(...channel.counts.map((c) => c.count_number)),
+              },
+              tooltip: {
+                formatter: function () {
+                  return (
+                    Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
+                    "<br/>" +
+                    "Count: " +
+                    this.y
+                  );
+                },
+              },
+              series: [
                 {
+                  name: "Count",
                   data: channelCounts,
-                  borderColor: accentColor,
-                  backgroundColor: accentColor,
-                  fill: true,
-                  tension: 0.4,
+                  color: accentColor,
+                  fillColor: accentColor,
                 },
               ],
-            },
-            options: {
-              responsive: true,
-              animation: {
-                duration: 1500,
-                easing: "easeInOutQuart",
-              },
-              plugins: {
-                legend: {
-                  display: false,
-                },
-                title: {
-                  display: false,
-                },
-                zoom: {
-                  zoom: {
-                    drag: {
-                      enabled: true,
-                    },
-                    mode: "x",
-                    speed: 0.6,
-                    onZoomComplete: debounce(function ({ chart }) {
-                      resetButton.style.display = "block";
-                    }, 200),
-                    limits: {
-                      x: { min: minDate, max: maxDate },
-                    },
+              plotOptions: {
+                area: {
+                  marker: {
+                    enabled: false,
                   },
                 },
               },
-              scales: {
-                x: {
-                  type: "time",
-                  time: {
-                    tooltipFormat: "MMM d, yyyy, hh:mm:ss a",
-                    displayFormats: {
-                      millisecond: "MMM d, yyyy, h:mm:ss.SSS a",
-                      second: "MMM d, yyyy, h:mm:ss a",
-                      minute: "MMM d, yyyy, h:mm a",
-                      hour: "MMM d, yyyy, h:mm a",
-                      day: "MMM d, yyyy",
-                      week: "MMM d, yyyy",
-                      month: "MMM yyyy",
-                      quarter: "QQQ yyyy",
-                      year: "yyyy",
-                    },
-                  },
-                  ticks: {
-                    callback: function (value, index, values) {
-                      return new Intl.DateTimeFormat(navigator.language, {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                        timeZone:
-                          Intl.DateTimeFormat().resolvedOptions().timeZone,
-                      }).format(new Date(value));
-                    },
-                    autoSkip: true,
-                    maxTicksLimit: 10,
-                  },
-                },
-                y: {
-                  beginAtZero: false,
-                  min: minYValue,
-                  title: {
-                    display: false,
-                  },
-                },
+              credits: {
+                enabled: false,
               },
-            },
-          });
-
-          charts[`channel-${channel.channel_id}`] = chart;
+              exporting: {
+                enabled: false,
+              },
+              legend: {
+                enabled: false,
+              },
+            }
+          );
 
           resetButton.addEventListener("click", () => {
-            charts[`channel-${channel.channel_id}`].resetZoom();
+            charts[`channel-${channel.channel_id}`].zoomOut();
             resetButton.style.display = "none";
+          });
+
+          charts[`channel-${channel.channel_id}`].update({
+            chart: {
+              events: {
+                selection: function (event) {
+                  if (event.xAxis) {
+                    resetButton.style.display = "block";
+                  }
+                },
+              },
+            },
           });
         });
       }
@@ -702,10 +698,9 @@
               counts: [],
             };
           }
+
           userCounts[count.user_id].counts.push({
-            x: luxon.DateTime.fromISO(count.timestamp, {
-              zone: "local",
-            }).toJSDate(),
+            x: new Date(count.timestamp).getTime(),
             y: userCounts[count.user_id].counts.length + 1,
           });
 
@@ -734,23 +729,21 @@
           const card = document.createElement("div");
           card.className = "card";
           card.innerHTML = `
-      <div class="card-header">
-          <div class="card-title-wrapper">
-              <img src="${user.profile_pic}" alt="${user.display_name}'s Profile Picture" style="width: 40px; height: 40px; border-radius: 50%;">
-              <div>
-                  <h2 class="card-title">${user.display_name} (@${user.username})</h2>
-                  <span class="card-rank">Leaderboard Rank: #${rank}</span>
-              </div>
-          </div>
-          <button id="resetZoomUser-${user.id}" class="reset-zoom-btn">Reset Zoom</button>
-      </div>
-      <canvas id="user-${user.id}-chart" class="chart-container"></canvas>
-    `;
+    <div class="card-header">
+        <div class="card-title-wrapper" style="display: flex; align-items: center;">
+            <img src="${user.profile_pic}" alt="${user.display_name}'s Profile Picture" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
+            <div>
+                <h2 class="card-title" style="margin: 0;">${user.display_name} (@${user.username})</h2>
+                <span class="card-rank">Leaderboard Rank: #${rank}</span>
+            </div>
+        </div>
+        <button id="resetZoomUser-${user.id}" class="reset-zoom-btn">Reset Zoom</button>
+    </div>
+    <div id="user-${user.id}-chart" class="chart-container"></div>
+        `;
           userChartsGrid.appendChild(card);
 
-          const ctx = document
-            .getElementById(`user-${user.id}-chart`)
-            .getContext("2d");
+          const container = document.getElementById(`user-${user.id}-chart`);
           const resetButton = document.getElementById(
             `resetZoomUser-${user.id}`
           );
@@ -774,97 +767,108 @@
               resetButton.style.color = "white";
             });
 
-            const allDates = user.counts.map((count) => count.x);
-            const minDate = new Date(Math.min(...allDates));
-            const maxDate = new Date(Math.max(...allDates));
+            const userData = user.counts;
 
-            const chart = new Chart(ctx, {
-              type: "line",
-              data: {
-                datasets: [
-                  {
-                    data: user.counts,
-                    borderColor: color,
-                    backgroundColor: color,
-                    fill: true,
-                    tension: 0.4,
-                  },
-                ],
+            charts[`user-${user.id}`] = Highcharts.chart(container, {
+              chart: {
+                type: "area",
+                zoomType: "x",
+                backgroundColor: "transparent",
+                animation: true,
+                resetZoomButton: false,
               },
-              options: {
-                responsive: true,
-                animation: {
-                  duration: 1500,
-                  easing: "easeInOutQuart",
-                },
-                plugins: {
-                  legend: {
-                    display: false,
+              title: {
+                text: null,
+              },
+              xAxis: {
+                type: "datetime",
+                tickAmount: 6,
+                labels: {
+                  style: {
+                    color: getComputedStyle(
+                      document.documentElement
+                    ).getPropertyValue("--text-color"),
                   },
-                  title: {
-                    display: false,
-                  },
-                  zoom: {
-                    zoom: {
-                      drag: {
-                        enabled: true,
-                      },
-                      mode: "x",
-                      speed: 0.2,
-                      onZoomComplete: debounce(function ({ chart }) {
-                        resetButton.style.display = "block";
-                      }, 200),
-                      limits: {
-                        x: { min: minDate, max: maxDate },
-                      },
-                    },
+                  formatter: function () {
+                    const date = Highcharts.dateFormat("%b %d, %Y", this.value);
+                    const time = Highcharts.dateFormat("%H:%M:%S", this.value);
+                    return `${date}<br>${time}`;
                   },
                 },
-                scales: {
-                  x: {
-                    type: "time",
-                    time: {
-                      tooltipFormat: "MMM d, yyyy, hh:mm:ss a",
-                      displayFormats: {
-                        millisecond: "MMM d, yyyy, h:mm:ss.SSS a",
-                        second: "MMM d, yyyy, h:mm:ss a",
-                        minute: "MMM d, yyyy, h:mm a",
-                        hour: "MMM d, yyyy, h:mm a",
-                        day: "MMM d, yyyy",
-                        week: "MMM d, yyyy",
-                        month: "MMM yyyy",
-                        quarter: "QQQ yyyy",
-                        year: "yyyy",
-                      },
-                    },
-                    ticks: {
-                      callback: function (value, index, values) {
-                        return new Intl.DateTimeFormat(navigator.language, {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                          timeZone:
-                            Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        }).format(new Date(value));
-                      },
-                      autoSkip: true,
-                      maxTicksLimit: 10,
-                    },
-                  },
-                  y: {
-                    beginAtZero: true,
-                    title: {
-                      display: false,
-                    },
+                lineColor: getComputedStyle(
+                  document.documentElement
+                ).getPropertyValue("--border-color"),
+                tickColor: getComputedStyle(
+                  document.documentElement
+                ).getPropertyValue("--border-color"),
+              },
+              yAxis: {
+                title: {
+                  text: null,
+                },
+                labels: {
+                  style: {
+                    color: getComputedStyle(
+                      document.documentElement
+                    ).getPropertyValue("--text-color"),
                   },
                 },
+                gridLineColor: getComputedStyle(
+                  document.documentElement
+                ).getPropertyValue("--border-color"),
+                min: 0,
+              },
+              tooltip: {
+                formatter: function () {
+                  return (
+                    Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
+                    "<br/>" +
+                    "Total counts: " +
+                    this.y
+                  );
+                },
+              },
+              series: [
+                {
+                  name: "Total Counts",
+                  data: userData,
+                  color: color,
+                  fillColor: color,
+                },
+              ],
+              plotOptions: {
+                area: {
+                  marker: {
+                    enabled: false,
+                  },
+                },
+              },
+              credits: {
+                enabled: false,
+              },
+              exporting: {
+                enabled: false,
+              },
+              legend: {
+                enabled: false,
               },
             });
 
-            charts[`user-${user.id}`] = chart;
-
             resetButton.addEventListener("click", () => {
-              charts[`user-${user.id}`].resetZoom();
+              charts[`user-${user.id}`].zoomOut();
               resetButton.style.display = "none";
+            });
+
+            charts[`user-${user.id}`].update({
+              chart: {
+                events: {
+                  selection: function (event) {
+                    if (event.xAxis) {
+                      resetButton.style.display = "block";
+                    }
+                  },
+                },
+              },
             });
           };
         });
@@ -873,7 +877,7 @@
       function createLeaderboard() {
         const leaderboard = document.getElementById("leaderboard-list");
         const userTotals = {};
-      
+
         serverData.channels.forEach((channel) => {
           channel.counts.forEach((count) => {
             if (!userTotals[count.user_id]) {
@@ -888,37 +892,27 @@
             userTotals[count.user_id].total += 1;
           });
         });
-      
+
         const sortedUsers = Object.values(userTotals).sort(
           (a, b) => b.total - a.total
         );
-      
+
         sortedUsers.forEach((user, index) => {
           const li = document.createElement("li");
           li.className = "leaderboard-item";
           li.innerHTML = `
-            <span class="leaderboard-rank">#${(index + 1).toLocaleString('en-US')}</span>
-            <img class="leaderboard-avatar" src="${user.profile_pic}" alt="${user.display_name}">
-            <div class="leaderboard-info">
-              <span class="leaderboard-name">${user.display_name}</span>
-              <span class="leaderboard-username">@${user.username}</span>
-            </div>
-            <span class="leaderboard-score">${user.total.toLocaleString('en-US')}</span>
-          `;
+                <span class="leaderboard-rank">#${index + 1}</span>
+                <img class="leaderboard-avatar" src="${
+                  user.profile_pic
+                }" alt="${user.display_name}">
+                <div class="leaderboard-info">
+                    <span class="leaderboard-name">${user.display_name}</span>
+                    <span class="leaderboard-username">@${user.username}</span>
+                </div>
+                <span class="leaderboard-score">${user.total}</span>
+            `;
           leaderboard.appendChild(li);
         });
-      }
-      
-      function debounce(func, wait) {
-        let timeout;
-        return function (...args) {
-          const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-          };
-          clearTimeout(timeout);
-          timeout = setTimeout(later, wait);
-        };
       }
 
       function initializeTabs() {
