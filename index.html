@@ -14,6 +14,7 @@
     <script src="https://code.highcharts.com/modules/export-data.js"></script>
     <script src="https://code.highcharts.com/modules/accessibility.js"></script>
     <script src="https://code.highcharts.com/modules/xrange.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
     <style>
       :root {
@@ -518,19 +519,22 @@
             ).getPropertyValue("--border-color"),
           },
           tooltip: {
+            backgroundColor: "#333333",
             style: {
+              color: "#FFFFFF",
+              fontWeight: "normal",
               fontSize: "12px",
               fontFamily: "Poppins, sans-serif",
             },
             formatter: function () {
               return (
+                "<b>Date:</b> " +
                 Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
-                "<br/>" +
-                "Total counts: " +
-                this.y.toLocaleString() +
-                "<br/>"
+                "<br/><b>Total counts:</b> " +
+                this.y.toLocaleString()
               );
             },
+            useHTML: true,
           },
           series: [
             {
@@ -612,12 +616,12 @@
           const card = document.createElement("div");
           card.className = "card";
           card.innerHTML = `
-        <div class="card-header">
-            <h2 class="card-title">${channel.channel_name}</h2>
-            <button id="resetZoomChannel-${channel.channel_id}" class="reset-zoom-btn">Reset Zoom</button>
-        </div>
-        <div id="channel-${channel.channel_id}-chart" class="chart-container"></div>
-      `;
+      <div class="card-header">
+          <h2 class="card-title">${channel.channel_name}</h2>
+          <button id="resetZoomChannel-${channel.channel_id}" class="reset-zoom-btn">Reset Zoom</button>
+      </div>
+      <div id="channel-${channel.channel_id}-chart" class="chart-container"></div>
+    `;
           channelChartsGrid.appendChild(card);
 
           const container = document.getElementById(
@@ -706,19 +710,22 @@
               min: Math.min(...channel.counts.map((c) => c.count_number)),
             },
             tooltip: {
+              backgroundColor: "#333333",
               style: {
+                color: "#FFFFFF",
+                fontWeight: "normal",
                 fontSize: "12px",
                 fontFamily: "Poppins, sans-serif",
               },
               formatter: function () {
                 return (
+                  "<b>Date:</b> " +
                   Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
-                  "<br/>" +
-                  "Count: " +
-                  this.y.toLocaleString() +
-                  "<br/>"
+                  "<br/><b>Count:</b> " +
+                  this.y.toLocaleString()
                 );
               },
+              useHTML: true,
             },
             series: [
               {
@@ -842,18 +849,18 @@
           const card = document.createElement("div");
           card.className = "card";
           card.innerHTML = `
-        <div class="card-header">
-          <div class="card-title-wrapper" style="display: flex; align-items: center;">
-              <img src="${user.profile_pic}" alt="${user.display_name}'s Profile Picture" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
-              <div>
-                  <h2 class="card-title" style="margin: 0;">${user.display_name} (@${user.username})</h2>
-                  <span class="card-rank">Leaderboard Rank: #${rank}</span>
-              </div>
-          </div>
-          <button id="resetZoomUser-${user.id}" class="reset-zoom-btn">Reset Zoom</button>
+      <div class="card-header">
+        <div class="card-title-wrapper" style="display: flex; align-items: center;">
+            <img src="${user.profile_pic}" alt="${user.display_name}'s Profile Picture" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
+            <div>
+                <h2 class="card-title" style="margin: 0;">${user.display_name} (@${user.username})</h2>
+                <span class="card-rank">Leaderboard Rank: #${rank}</span>
+            </div>
         </div>
-        <div id="user-${user.id}-chart" class="chart-container"></div>
-      `;
+        <button id="resetZoomUser-${user.id}" class="reset-zoom-btn">Reset Zoom</button>
+      </div>
+      <div id="user-${user.id}-chart" class="chart-container"></div>
+    `;
           userChartsGrid.appendChild(card);
 
           const container = document.getElementById(`user-${user.id}-chart`);
@@ -943,19 +950,22 @@
                 min: 0,
               },
               tooltip: {
+                backgroundColor: "#333333",
                 style: {
+                  color: "#FFFFFF",
+                  fontWeight: "normal",
                   fontSize: "12px",
                   fontFamily: "Poppins, sans-serif",
                 },
                 formatter: function () {
                   return (
+                    "<b>Date:</b> " +
                     Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
-                    "<br/>" +
-                    "Total counts: " +
-                    this.y.toLocaleString() +
-                    "<br/>"
+                    "<br/><b>Total counts:</b> " +
+                    this.y.toLocaleString()
                   );
                 },
+                useHTML: true,
               },
               series: [
                 {
