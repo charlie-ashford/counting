@@ -873,7 +873,7 @@
       function createLeaderboard() {
         const leaderboard = document.getElementById("leaderboard-list");
         const userTotals = {};
-
+      
         serverData.channels.forEach((channel) => {
           channel.counts.forEach((count) => {
             if (!userTotals[count.user_id]) {
@@ -888,29 +888,27 @@
             userTotals[count.user_id].total += 1;
           });
         });
-
+      
         const sortedUsers = Object.values(userTotals).sort(
           (a, b) => b.total - a.total
         );
-
+      
         sortedUsers.forEach((user, index) => {
           const li = document.createElement("li");
           li.className = "leaderboard-item";
           li.innerHTML = `
-          <span class="leaderboard-rank">#${index + 1}</span>
-          <img class="leaderboard-avatar" src="${user.profile_pic}" alt="${
-            user.display_name
-          }">
-          <div class="leaderboard-info">
-            <span class="leaderboard-name">${user.display_name}</span>
-            <span class="leaderboard-username">@${user.username}</span>
-          </div>
-          <span class="leaderboard-score">${user.total}</span>
-        `;
+            <span class="leaderboard-rank">#${(index + 1).toLocaleString('en-US')}</span>
+            <img class="leaderboard-avatar" src="${user.profile_pic}" alt="${user.display_name}">
+            <div class="leaderboard-info">
+              <span class="leaderboard-name">${user.display_name}</span>
+              <span class="leaderboard-username">@${user.username}</span>
+            </div>
+            <span class="leaderboard-score">${user.total.toLocaleString('en-US')}</span>
+          `;
           leaderboard.appendChild(li);
         });
       }
-
+      
       function debounce(func, wait) {
         let timeout;
         return function (...args) {
