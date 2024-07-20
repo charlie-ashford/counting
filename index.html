@@ -493,8 +493,8 @@ function createServerOverviewChart() {
     const totalPoints = cumulativeData.length;
     let skipRate = 1;
 
-    if (totalPoints > 5000) {
-        skipRate = Math.ceil(totalPoints / 5000);
+    if (totalPoints > 4000) {
+        skipRate = Math.ceil(totalPoints / 4000);
     }
 
     const sampledData = cumulativeData.filter((_, index) => index % skipRate === 0);
@@ -691,8 +691,8 @@ function createChannelCharts() {
         const totalPoints = channelCounts.length;
         let skipRate = 1;
 
-        if (totalPoints > 5000) {
-            skipRate = Math.ceil(totalPoints / 5000);
+        if (totalPoints > 4000) {
+            skipRate = Math.ceil(totalPoints / 4000);
         }
 
         const sampledData = channelCounts.filter((_, index) => index % skipRate === 0);
@@ -940,8 +940,8 @@ function createUserCharts() {
             const totalPoints = userData.length;
             let skipRate = 1;
 
-            if (totalPoints > 5000) {
-                skipRate = Math.ceil(totalPoints / 5000);
+            if (totalPoints > 4000) {
+                skipRate = Math.ceil(totalPoints / 4000);
             }
 
             const sampledData = userData.filter((_, index) => index % skipRate === 0);
