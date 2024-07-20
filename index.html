@@ -448,436 +448,456 @@
         };
       }
 
-      function createServerOverviewChart() {
-        const container = document.getElementById("server-overview-chart");
-        setChartHeight(container, 600);
-        const resetButton = document.createElement("button");
-        resetButton.textContent = "Reset Zoom";
-        resetButton.className = "reset-zoom-btn";
-        const cardHeader = document.querySelector("#overview .card-header");
-        cardHeader.appendChild(resetButton);
+function createServerOverviewChart() {
+    const container = document.getElementById("server-overview-chart");
+    setChartHeight(container, 600);
+    const resetButton = document.createElement("button");
+    resetButton.textContent = "Reset Zoom";
+    resetButton.className = "reset-zoom-btn";
+    const cardHeader = document.querySelector("#overview .card-header");
+    cardHeader.appendChild(resetButton);
 
-        const accentColor = getComputedStyle(
-          document.documentElement
-        ).getPropertyValue("--accent-color");
+    const accentColor = getComputedStyle(
+        document.documentElement
+    ).getPropertyValue("--accent-color");
 
+    resetButton.style.backgroundColor = accentColor;
+    resetButton.addEventListener("mouseover", () => {
+        resetButton.style.backgroundColor = "#333333";
+        resetButton.style.color = "white";
+    });
+    resetButton.addEventListener("mouseout", () => {
         resetButton.style.backgroundColor = accentColor;
-        resetButton.addEventListener("mouseover", () => {
-          resetButton.style.backgroundColor = "#333333";
-          resetButton.style.color = "white";
-        });
-        resetButton.addEventListener("mouseout", () => {
-          resetButton.style.backgroundColor = accentColor;
-          resetButton.style.color = "white";
-        });
+        resetButton.style.color = "white";
+    });
 
-        const allCounts = serverData.channels.flatMap((channel) =>
-          channel.counts.map((count) => ({
+    const allCounts = serverData.channels.flatMap((channel) =>
+        channel.counts.map((count) => ({
             ...count,
             channelName: channel.channel_name,
-          }))
-        );
+        }))
+    );
 
-        allCounts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    allCounts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        let cumulativeCount = 0;
-        const cumulativeData = allCounts.map((count) => {
-          cumulativeCount += 1;
-          return [
+    let cumulativeCount = 0;
+    const cumulativeData = allCounts.map((count) => {
+        cumulativeCount += 1;
+        return [
             new Date(count.timestamp).getTime(),
             cumulativeCount,
             count.channelName,
-          ];
-        });
+        ];
+    });
 
-        charts["server-overview"] = Highcharts.chart(container, {
-          chart: {
+    const totalPoints = cumulativeData.length;
+    let skipRate = 1;
+
+    if (totalPoints > 5000) {
+        skipRate = Math.ceil(totalPoints / 5000);
+    }
+
+    const sampledData = cumulativeData.filter((_, index) => index % skipRate === 0);
+
+    console.log(`Starting points: ${totalPoints}, Skip rate: Every ${skipRate} points, Final points: ${sampledData.length}`);
+
+    charts["server-overview"] = Highcharts.chart(container, {
+        chart: {
             type: "area",
             zoomType: "x",
             backgroundColor: "transparent",
             height: 600,
             animation: true,
             resetZoomButton: {
-              theme: {
-                display: "none",
-              },
+                theme: {
+                    display: "none",
+                },
             },
-          },
-          title: {
+        },
+        title: {
             text: null,
-          },
-          xAxis: {
+        },
+        xAxis: {
             type: "datetime",
             tickAmount: 6,
             labels: {
-              style: {
-                color: getComputedStyle(
-                  document.documentElement
-                ).getPropertyValue("--text-color"),
-                fontSize: "12px",
-                fontFamily: "Poppins, sans-serif",
-              },
-              formatter: function () {
-                const date = Highcharts.dateFormat("%b %d, %Y", this.value);
-                const time = Highcharts.dateFormat("%H:%M:%S", this.value);
-                return `${date}<br>${time}`;
-              },
+                style: {
+                    color: getComputedStyle(
+                        document.documentElement
+                    ).getPropertyValue("--text-color"),
+                    fontSize: "12px",
+                    fontFamily: "Poppins, sans-serif",
+                },
+                formatter: function () {
+                    const date = Highcharts.dateFormat("%b %d, %Y", this.value);
+                    const time = Highcharts.dateFormat("%H:%M:%S", this.value);
+                    return `${date}<br>${time}`;
+                },
             },
             lineColor: getComputedStyle(
-              document.documentElement
+                document.documentElement
             ).getPropertyValue("--border-color"),
             tickColor: getComputedStyle(
-              document.documentElement
+                document.documentElement
             ).getPropertyValue("--border-color"),
-          },
-          yAxis: {
+        },
+        yAxis: {
             title: {
-              text: null,
+                text: null,
             },
             labels: {
-              style: {
-                color: getComputedStyle(
-                  document.documentElement
-                ).getPropertyValue("--text-color"),
-                fontSize: "12px",
-                fontFamily: "Poppins, sans-serif",
-              },
+                style: {
+                    color: getComputedStyle(
+                        document.documentElement
+                    ).getPropertyValue("--text-color"),
+                    fontSize: "12px",
+                    fontFamily: "Poppins, sans-serif",
+                },
             },
             gridLineColor: getComputedStyle(
-              document.documentElement
+                document.documentElement
             ).getPropertyValue("--border-color"),
-          },
-          tooltip: {
+        },
+        tooltip: {
             backgroundColor: "#333333",
             style: {
-              color: "#FFFFFF",
-              fontWeight: "normal",
-              fontSize: "12px",
-              fontFamily: "Poppins, sans-serif",
+                color: "#FFFFFF",
+                fontWeight: "normal",
+                fontSize: "12px",
+                fontFamily: "Poppins, sans-serif",
             },
             formatter: function () {
-              return (
-                "<b>Date:</b> " +
-                Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
-                "<br/><b>Total counts:</b> " +
-                this.y.toLocaleString()
-              );
+                return (
+                    "<b>Date:</b> " +
+                    Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
+                    "<br/><b>Total counts:</b> " +
+                    this.y.toLocaleString()
+                );
             },
             useHTML: true,
-          },
-          series: [
+        },
+        series: [
             {
-              name: "Total Counts",
-              data: cumulativeData.map((d) => ({
-                x: d[0],
-                y: d[1],
-                channel: d[2],
-              })),
-              color: accentColor,
-              fillColor: accentColor,
-              marker: {
-                enabled: false,
-              },
-            },
-          ],
-          plotOptions: {
-            area: {
-              marker: {
-                enabled: false,
-              },
-              lineWidth: 2,
-              lineColor: accentColor,
-              fillOpacity: 0.5,
-              series: {
+                name: "Total Counts",
+                data: sampledData.map((d) => ({
+                    x: d[0],
+                    y: d[1],
+                    channel: d[2],
+                })),
+                color: accentColor,
+                fillColor: accentColor,
                 marker: {
-                  radius: 2,
+                    enabled: false,
                 },
-                lineWidth: 3,
-                states: {
-                  hover: {
-                    lineWidth: 2,
-                  },
-                },
-              },
             },
-          },
-          credits: {
+        ],
+        plotOptions: {
+            area: {
+                marker: {
+                    enabled: false,
+                },
+                lineWidth: 2,
+                lineColor: accentColor,
+                fillOpacity: 0.5,
+                series: {
+                    marker: {
+                        radius: 2,
+                    },
+                    lineWidth: 3,
+                    states: {
+                        hover: {
+                            lineWidth: 2,
+                        },
+                    },
+                },
+            },
+        },
+        credits: {
             enabled: false,
-          },
-          exporting: {
+        },
+        exporting: {
             enabled: false,
-          },
-          legend: {
+        },
+        legend: {
             enabled: false,
-          },
-        });
+        },
+    });
 
-        resetButton.addEventListener("click", () => {
-          charts["server-overview"].zoomOut();
-          resetButton.style.display = "none";
-        });
+    resetButton.addEventListener("click", () => {
+        charts["server-overview"].zoomOut();
+        resetButton.style.display = "none";
+    });
 
-        charts["server-overview"].update({
-          chart: {
+    charts["server-overview"].update({
+        chart: {
             events: {
-              selection: function (event) {
-                if (event.xAxis) {
-                  resetButton.style.display = "block";
-                }
-              },
+                selection: function (event) {
+                    if (event.xAxis) {
+                        resetButton.style.display = "block";
+                    }
+                },
             },
-          },
-        });
-      }
+        },
+    });
+}
 
-      function createChannelCharts() {
-        const channelChartsGrid = document.getElementById(
-          "channel-charts-grid"
-        );
+function createChannelCharts() {
+    const channelChartsGrid = document.getElementById("channel-charts-grid");
 
-        if (serverData.channels.length > 1) {
-          channelChartsGrid.classList.add("grid");
-        } else {
-          channelChartsGrid.classList.remove("grid");
-        }
+    if (serverData.channels.length > 1) {
+        channelChartsGrid.classList.add("grid");
+    } else {
+        channelChartsGrid.classList.remove("grid");
+    }
 
-        serverData.channels.forEach((channel) => {
-          const card = document.createElement("div");
-          card.className = "card";
-          card.innerHTML = `
+    serverData.channels.forEach((channel) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
       <div class="card-header">
           <h2 class="card-title">${channel.channel_name}</h2>
           <button id="resetZoomChannel-${channel.channel_id}" class="reset-zoom-btn">Reset Zoom</button>
       </div>
       <div id="channel-${channel.channel_id}-chart" class="chart-container"></div>
     `;
-          channelChartsGrid.appendChild(card);
+        channelChartsGrid.appendChild(card);
 
-          const container = document.getElementById(
+        const container = document.getElementById(
             `channel-${channel.channel_id}-chart`
-          );
-          const resetButton = document.getElementById(
+        );
+        const resetButton = document.getElementById(
             `resetZoomChannel-${channel.channel_id}`
-          );
+        );
 
-          const accentColor = getComputedStyle(
+        const accentColor = getComputedStyle(
             document.documentElement
-          ).getPropertyValue("--accent-color");
+        ).getPropertyValue("--accent-color");
 
-          resetButton.style.backgroundColor = accentColor;
-          resetButton.addEventListener("mouseover", () => {
+        resetButton.style.backgroundColor = accentColor;
+        resetButton.addEventListener("mouseover", () => {
             resetButton.style.backgroundColor = "#333333";
             resetButton.style.color = "white";
-          });
-          resetButton.addEventListener("mouseout", () => {
+        });
+        resetButton.addEventListener("mouseout", () => {
             resetButton.style.backgroundColor = accentColor;
             resetButton.style.color = "white";
-          });
+        });
 
-          const channelCounts = channel.counts.map((count) => [
+        const channelCounts = channel.counts.map((count) => [
             new Date(count.timestamp).getTime(),
             count.count_number,
-          ]);
+        ]);
 
-          const chartHeight = serverData.channels.length > 1 ? 300 : 600;
-          const chartOptions = {
-            chart: {
-              type: "area",
-              zoomType: "x",
-              backgroundColor: "transparent",
-              animation: true,
-              height: chartHeight,
-              resetZoomButton: {
-                theme: {
-                  display: "none",
-                },
-              },
-            },
-            title: {
-              text: null,
-            },
-            xAxis: {
-              type: "datetime",
-              tickAmount: 6,
-              labels: {
-                style: {
-                  color: getComputedStyle(
-                    document.documentElement
-                  ).getPropertyValue("--text-color"),
-                  fontSize: "12px",
-                  fontFamily: "Poppins, sans-serif",
-                },
-                formatter: function () {
-                  const date = Highcharts.dateFormat("%b %d, %Y", this.value);
-                  const time = Highcharts.dateFormat("%H:%M:%S", this.value);
-                  return `${date}<br>${time}`;
-                },
-              },
-              lineColor: getComputedStyle(
-                document.documentElement
-              ).getPropertyValue("--border-color"),
-              tickColor: getComputedStyle(
-                document.documentElement
-              ).getPropertyValue("--border-color"),
-            },
-            yAxis: {
-              title: {
-                text: null,
-              },
-              labels: {
-                style: {
-                  color: getComputedStyle(
-                    document.documentElement
-                  ).getPropertyValue("--text-color"),
-                  fontSize: "12px",
-                  fontFamily: "Poppins, sans-serif",
-                },
-              },
-              gridLineColor: getComputedStyle(
-                document.documentElement
-              ).getPropertyValue("--border-color"),
-              min: Math.min(...channel.counts.map((c) => c.count_number)),
-            },
-            tooltip: {
-              backgroundColor: "#333333",
-              style: {
-                color: "#FFFFFF",
-                fontWeight: "normal",
-                fontSize: "12px",
-                fontFamily: "Poppins, sans-serif",
-              },
-              formatter: function () {
-                return (
-                  "<b>Date:</b> " +
-                  Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
-                  "<br/><b>Count:</b> " +
-                  this.y.toLocaleString()
-                );
-              },
-              useHTML: true,
-            },
-            series: [
-              {
-                name: "Count",
-                data: channelCounts,
-                color: accentColor,
-                fillColor: accentColor,
-                marker: {
-                  enabled: false,
-                },
-              },
-            ],
-            plotOptions: {
-              area: {
-                marker: {
-                  enabled: false,
-                },
-                lineWidth: 2,
-                lineColor: accentColor,
-                fillOpacity: 0.5,
-                series: {
-                  marker: {
-                    radius: 2,
-                  },
-                  lineWidth: 3,
-                  states: {
-                    hover: {
-                      lineWidth: 2,
-                    },
-                  },
-                },
-              },
-            },
-            credits: {
-              enabled: false,
-            },
-            exporting: {
-              enabled: false,
-            },
-            legend: {
-              enabled: false,
-            },
-          };
+        const totalPoints = channelCounts.length;
+        let skipRate = 1;
 
-          charts[`channel-${channel.channel_id}`] = Highcharts.chart(
-            container,
-            chartOptions
-          );
-
-          resetButton.addEventListener("click", () => {
-            charts[`channel-${channel.channel_id}`].zoomOut();
-            resetButton.style.display = "none";
-          });
-
-          charts[`channel-${channel.channel_id}`].update({
-            chart: {
-              events: {
-                selection: function (event) {
-                  if (event.xAxis) {
-                    resetButton.style.display = "block";
-                  }
-                },
-              },
-            },
-          });
-        });
-      }
-
-      function createUserCharts() {
-        const userChartsGrid = document.getElementById("user-charts-grid");
-        const userCounts = {};
-        const userTotals = {};
-
-        const allCounts = serverData.channels.flatMap((channel) =>
-          channel.counts.map((count) => ({
-            ...count,
-            channelName: channel.channel_name,
-          }))
-        );
-
-        allCounts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-        allCounts.forEach((count) => {
-          if (!userCounts[count.user_id]) {
-            userCounts[count.user_id] = {
-              id: count.user_id,
-              username: count.username,
-              display_name: count.display_name,
-              profile_pic: count.profile_pic,
-              counts: [],
-            };
-          }
-
-          userCounts[count.user_id].counts.push({
-            x: new Date(count.timestamp).getTime(),
-            y: userCounts[count.user_id].counts.length + 1,
-          });
-
-          if (!userTotals[count.user_id]) {
-            userTotals[count.user_id] = {
-              id: count.user_id,
-              total: 0,
-            };
-          }
-          userTotals[count.user_id].total += 1;
-        });
-
-        const sortedUsers = Object.values(userTotals).sort(
-          (a, b) => b.total - a.total
-        );
-
-        if (Object.keys(userCounts).length > 1) {
-          userChartsGrid.classList.add("grid");
-        } else {
-          userChartsGrid.classList.remove("grid");
+        if (totalPoints > 5000) {
+            skipRate = Math.ceil(totalPoints / 5000);
         }
 
-        sortedUsers.forEach((userTotal, index) => {
-          const user = userCounts[userTotal.id];
-          const rank = index + 1;
-          const card = document.createElement("div");
-          card.className = "card";
-          card.innerHTML = `
+        const sampledData = channelCounts.filter((_, index) => index % skipRate === 0);
+
+        console.log(`Starting points for channel ${channel.channel_id}: ${totalPoints}, Skip rate: Every ${skipRate} points, Final points: ${sampledData.length}`);
+
+        const chartHeight = serverData.channels.length > 1 ? 300 : 600;
+        const chartOptions = {
+            chart: {
+                type: "area",
+                zoomType: "x",
+                backgroundColor: "transparent",
+                animation: true,
+                height: chartHeight,
+                resetZoomButton: {
+                    theme: {
+                        display: "none",
+                    },
+                },
+            },
+            title: {
+                text: null,
+            },
+            xAxis: {
+                type: "datetime",
+                tickAmount: 6,
+                labels: {
+                    style: {
+                        color: getComputedStyle(
+                            document.documentElement
+                        ).getPropertyValue("--text-color"),
+                        fontSize: "12px",
+                        fontFamily: "Poppins, sans-serif",
+                    },
+                    formatter: function () {
+                        const date = Highcharts.dateFormat("%b %d, %Y", this.value);
+                        const time = Highcharts.dateFormat("%H:%M:%S", this.value);
+                        return `${date}<br>${time}`;
+                    },
+                },
+                lineColor: getComputedStyle(
+                    document.documentElement
+                ).getPropertyValue("--border-color"),
+                tickColor: getComputedStyle(
+                    document.documentElement
+                ).getPropertyValue("--border-color"),
+            },
+            yAxis: {
+                title: {
+                    text: null,
+                },
+                labels: {
+                    style: {
+                        color: getComputedStyle(
+                            document.documentElement
+                        ).getPropertyValue("--text-color"),
+                        fontSize: "12px",
+                        fontFamily: "Poppins, sans-serif",
+                    },
+                },
+                gridLineColor: getComputedStyle(
+                    document.documentElement
+                ).getPropertyValue("--border-color"),
+                min: Math.min(...channel.counts.map((c) => c.count_number)),
+            },
+            tooltip: {
+                backgroundColor: "#333333",
+                style: {
+                    color: "#FFFFFF",
+                    fontWeight: "normal",
+                    fontSize: "12px",
+                    fontFamily: "Poppins, sans-serif",
+                },
+                formatter: function () {
+                    return (
+                        "<b>Date:</b> " +
+                        Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
+                        "<br/><b>Count:</b> " +
+                        this.y.toLocaleString()
+                    );
+                },
+                useHTML: true,
+            },
+            series: [
+                {
+                    name: "Count",
+                    data: sampledData,
+                    color: accentColor,
+                    fillColor: accentColor,
+                    marker: {
+                        enabled: false,
+                    },
+                },
+            ],
+            plotOptions: {
+                area: {
+                    marker: {
+                        enabled: false,
+                    },
+                    lineWidth: 2,
+                    lineColor: accentColor,
+                    fillOpacity: 0.5,
+                    series: {
+                        marker: {
+                            radius: 2,
+                        },
+                        lineWidth: 3,
+                        states: {
+                            hover: {
+                                lineWidth: 2,
+                            },
+                        },
+                    },
+                },
+            },
+            credits: {
+                enabled: false,
+            },
+            exporting: {
+                enabled: false,
+            },
+            legend: {
+                enabled: false,
+            },
+        };
+
+        charts[`channel-${channel.channel_id}`] = Highcharts.chart(
+            container,
+            chartOptions
+        );
+
+        resetButton.addEventListener("click", () => {
+            charts[`channel-${channel.channel_id}`].zoomOut();
+            resetButton.style.display = "none";
+        });
+
+        charts[`channel-${channel.channel_id}`].update({
+            chart: {
+                events: {
+                    selection: function (event) {
+                        if (event.xAxis) {
+                            resetButton.style.display = "block";
+                        }
+                    },
+                },
+            },
+        });
+    });
+}
+
+function createUserCharts() {
+    const userChartsGrid = document.getElementById("user-charts-grid");
+    const userCounts = {};
+    const userTotals = {};
+
+    const allCounts = serverData.channels.flatMap((channel) =>
+        channel.counts.map((count) => ({
+            ...count,
+            channelName: channel.channel_name,
+        }))
+    );
+
+    allCounts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    allCounts.forEach((count) => {
+        if (!userCounts[count.user_id]) {
+            userCounts[count.user_id] = {
+                id: count.user_id,
+                username: count.username,
+                display_name: count.display_name,
+                profile_pic: count.profile_pic,
+                counts: [],
+            };
+        }
+
+        userCounts[count.user_id].counts.push({
+            x: new Date(count.timestamp).getTime(),
+            y: userCounts[count.user_id].counts.length + 1,
+        });
+
+        if (!userTotals[count.user_id]) {
+            userTotals[count.user_id] = {
+                id: count.user_id,
+                total: 0,
+            };
+        }
+        userTotals[count.user_id].total += 1;
+    });
+
+    const sortedUsers = Object.values(userTotals).sort(
+        (a, b) => b.total - a.total
+    );
+
+    if (Object.keys(userCounts).length > 1) {
+        userChartsGrid.classList.add("grid");
+    } else {
+        userChartsGrid.classList.remove("grid");
+    }
+
+    sortedUsers.forEach((userTotal, index) => {
+        const user = userCounts[userTotal.id];
+        const rank = index + 1;
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
       <div class="card-header">
         <div class="card-title-wrapper" style="display: flex; align-items: center;">
             <img src="${user.profile_pic}" alt="${user.display_name}'s Profile Picture" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px;">
@@ -890,17 +910,17 @@
       </div>
       <div id="user-${user.id}-chart" class="chart-container"></div>
     `;
-          userChartsGrid.appendChild(card);
+        userChartsGrid.appendChild(card);
 
-          const container = document.getElementById(`user-${user.id}-chart`);
-          const resetButton = document.getElementById(
+        const container = document.getElementById(`user-${user.id}-chart`);
+        const resetButton = document.getElementById(
             `resetZoomUser-${user.id}`
-          );
+        );
 
-          const profilePic = new Image();
-          profilePic.crossOrigin = "Anonymous";
-          profilePic.src = user.profile_pic;
-          profilePic.onload = () => {
+        const profilePic = new Image();
+        profilePic.crossOrigin = "Anonymous";
+        profilePic.src = user.profile_pic;
+        profilePic.onload = () => {
             const colorThief = new ColorThief();
             const palette = colorThief.getPalette(profilePic, 8);
             const mostVibrantColor = getMostVibrantColor(palette);
@@ -908,161 +928,171 @@
 
             resetButton.style.backgroundColor = color;
             resetButton.addEventListener("mouseover", () => {
-              resetButton.style.backgroundColor = "#333333";
-              resetButton.style.color = "white";
+                resetButton.style.backgroundColor = "#333333";
+                resetButton.style.color = "white";
             });
             resetButton.addEventListener("mouseout", () => {
-              resetButton.style.backgroundColor = color;
-              resetButton.style.color = "white";
+                resetButton.style.backgroundColor = color;
+                resetButton.style.color = "white";
             });
 
             const userData = user.counts;
+            const totalPoints = userData.length;
+            let skipRate = 1;
+
+            if (totalPoints > 5000) {
+                skipRate = Math.ceil(totalPoints / 5000);
+            }
+
+            const sampledData = userData.filter((_, index) => index % skipRate === 0);
+
+            console.log(`Starting points for user ${user.id}: ${totalPoints}, Skip rate: Every ${skipRate} points, Final points: ${sampledData.length}`);
 
             const chartHeight = Object.keys(userCounts).length > 1 ? 300 : 600;
 
             const chartOptions = {
-              chart: {
-                type: "area",
-                zoomType: "x",
-                backgroundColor: "transparent",
-                animation: true,
-                height: chartHeight,
-                resetZoomButton: {
-                  theme: {
-                    display: "none",
-                  },
+                chart: {
+                    type: "area",
+                    zoomType: "x",
+                    backgroundColor: "transparent",
+                    animation: true,
+                    height: chartHeight,
+                    resetZoomButton: {
+                        theme: {
+                            display: "none",
+                        },
+                    },
                 },
-              },
-              title: {
-                text: null,
-              },
-              xAxis: {
-                type: "datetime",
-                tickAmount: 6,
-                labels: {
-                  style: {
-                    color: getComputedStyle(
-                      document.documentElement
-                    ).getPropertyValue("--text-color"),
-                    fontSize: "12px",
-                    fontFamily: "Poppins, sans-serif",
-                  },
-                  formatter: function () {
-                    const date = Highcharts.dateFormat("%b %d, %Y", this.value);
-                    const time = Highcharts.dateFormat("%H:%M:%S", this.value);
-                    return `${date}<br>${time}`;
-                  },
-                },
-                lineColor: getComputedStyle(
-                  document.documentElement
-                ).getPropertyValue("--border-color"),
-                tickColor: getComputedStyle(
-                  document.documentElement
-                ).getPropertyValue("--border-color"),
-              },
-              yAxis: {
                 title: {
-                  text: null,
+                    text: null,
                 },
-                labels: {
-                  style: {
-                    color: getComputedStyle(
-                      document.documentElement
-                    ).getPropertyValue("--text-color"),
-                    fontSize: "12px",
-                    fontFamily: "Poppins, sans-serif",
-                  },
-                },
-                gridLineColor: getComputedStyle(
-                  document.documentElement
-                ).getPropertyValue("--border-color"),
-                min: 0,
-              },
-              tooltip: {
-                backgroundColor: "#333333",
-                style: {
-                  color: "#FFFFFF",
-                  fontWeight: "normal",
-                  fontSize: "12px",
-                  fontFamily: "Poppins, sans-serif",
-                },
-                formatter: function () {
-                  return (
-                    "<b>Date:</b> " +
-                    Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
-                    "<br/><b>Total counts:</b> " +
-                    this.y.toLocaleString()
-                  );
-                },
-                useHTML: true,
-              },
-              series: [
-                {
-                  name: "Total Counts",
-                  data: userData,
-                  color: color,
-                  fillColor: color,
-                  marker: {
-                    enabled: false,
-                  },
-                },
-              ],
-              plotOptions: {
-                area: {
-                  marker: {
-                    enabled: false,
-                  },
-                  lineWidth: 2,
-                  lineColor: color,
-                  fillOpacity: 0.5,
-                  series: {
-                    marker: {
-                      radius: 2,
+                xAxis: {
+                    type: "datetime",
+                    tickAmount: 6,
+                    labels: {
+                        style: {
+                            color: getComputedStyle(
+                                document.documentElement
+                            ).getPropertyValue("--text-color"),
+                            fontSize: "12px",
+                            fontFamily: "Poppins, sans-serif",
+                        },
+                        formatter: function () {
+                            const date = Highcharts.dateFormat("%b %d, %Y", this.value);
+                            const time = Highcharts.dateFormat("%H:%M:%S", this.value);
+                            return `${date}<br>${time}`;
+                        },
                     },
-                    lineWidth: 3,
-                    states: {
-                      hover: {
+                    lineColor: getComputedStyle(
+                        document.documentElement
+                    ).getPropertyValue("--border-color"),
+                    tickColor: getComputedStyle(
+                        document.documentElement
+                    ).getPropertyValue("--border-color"),
+                },
+                yAxis: {
+                    title: {
+                        text: null,
+                    },
+                    labels: {
+                        style: {
+                            color: getComputedStyle(
+                                document.documentElement
+                            ).getPropertyValue("--text-color"),
+                            fontSize: "12px",
+                            fontFamily: "Poppins, sans-serif",
+                        },
+                    },
+                    gridLineColor: getComputedStyle(
+                        document.documentElement
+                    ).getPropertyValue("--border-color"),
+                    min: 0,
+                },
+                tooltip: {
+                    backgroundColor: "#333333",
+                    style: {
+                        color: "#FFFFFF",
+                        fontWeight: "normal",
+                        fontSize: "12px",
+                        fontFamily: "Poppins, sans-serif",
+                    },
+                    formatter: function () {
+                        return (
+                            "<b>Date:</b> " +
+                            Highcharts.dateFormat("%b %d, %Y, %H:%M:%S", this.x) +
+                            "<br/><b>Total counts:</b> " +
+                            this.y.toLocaleString()
+                        );
+                    },
+                    useHTML: true,
+                },
+                series: [
+                    {
+                        name: "Total Counts",
+                        data: sampledData,
+                        color: color,
+                        fillColor: color,
+                        marker: {
+                            enabled: false,
+                        },
+                    },
+                ],
+                plotOptions: {
+                    area: {
+                        marker: {
+                            enabled: false,
+                        },
                         lineWidth: 2,
-                      },
+                        lineColor: color,
+                        fillOpacity: 0.5,
+                        series: {
+                            marker: {
+                                radius: 2,
+                            },
+                            lineWidth: 3,
+                            states: {
+                                hover: {
+                                    lineWidth: 2,
+                                },
+                            },
+                        },
                     },
-                  },
                 },
-              },
-              credits: {
-                enabled: false,
-              },
-              exporting: {
-                enabled: false,
-              },
-              legend: {
-                enabled: false,
-              },
+                credits: {
+                    enabled: false,
+                },
+                exporting: {
+                    enabled: false,
+                },
+                legend: {
+                    enabled: false,
+                },
             };
 
             charts[`user-${user.id}`] = Highcharts.chart(
-              container,
-              chartOptions
+                container,
+                chartOptions
             );
 
             resetButton.addEventListener("click", () => {
-              charts[`user-${user.id}`].zoomOut();
-              resetButton.style.display = "none";
+                charts[`user-${user.id}`].zoomOut();
+                resetButton.style.display = "none";
             });
 
             charts[`user-${user.id}`].update({
-              chart: {
-                events: {
-                  selection: function (event) {
-                    if (event.xAxis) {
-                      resetButton.style.display = "block";
-                    }
-                  },
+                chart: {
+                    events: {
+                        selection: function (event) {
+                            if (event.xAxis) {
+                                resetButton.style.display = "block";
+                            }
+                        },
+                    },
                 },
-              },
             });
-          };
-        });
-      }
+        };
+    });
+}
 
       function createLeaderboard() {
         const leaderboard = document.getElementById("leaderboard-list");
